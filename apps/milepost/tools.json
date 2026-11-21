@@ -732,7 +732,7 @@
   },
   {
     "name": "milepost.plan.project",
-    "description": "For the stored plan and one future assessment (an ID from assessments.list), the level each target skill would reach on the assessment date if every planned block is completed, under learner rule milepost-learner/1. Study-rule checks are not included. Unknown assessment: not_found; past assessment: invalid_state.",
+    "description": "For the stored plan and one future assessment (an ID from assessments.list), the level each target skill would reach on the assessment date if every planned block is completed, under learner rule milepost-learner/1, and whether it reaches its target (judged on the unrounded level, so 0.650 against 0.65 can still be short). Study-rule checks are not included. Unknown assessment: not_found; past assessment: invalid_state.",
     "read_only": true,
     "scope": "milepost.plan.project",
     "resource_target": "current account",
@@ -809,12 +809,16 @@
                 "type": "number",
                 "minimum": 0.01,
                 "maximum": 1
+              },
+              "reaches_target": {
+                "type": "boolean"
               }
             },
             "required": [
               "skill_id",
               "projected_level",
-              "target"
+              "target",
+              "reaches_target"
             ],
             "additionalProperties": false
           },

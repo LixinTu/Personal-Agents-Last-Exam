@@ -28,7 +28,7 @@ test('E1: with no practice, levels only fade and reads change nothing', () => {
 test('E2: projection for quiz-3, then two blocks, then a refused overlapping block', () => {
   const f = fixture();
   const empty = f.call('milepost.plan.project', {assessment_id: 'quiz-3'});
-  assert.deepEqual(empty.skills, [{skill_id: F, projected_level: 0.324, target: 0.6}, {skill_id: X, projected_level: 0.751, target: 0.7}]);
+  assert.deepEqual(empty.skills, [{skill_id: F, projected_level: 0.324, target: 0.6, reaches_target: false}, {skill_id: X, projected_level: 0.751, target: 0.7, reaches_target: true}]);
   twoBlocks(f);
   assert.equal(projected(f, 'quiz-3')[F], 0.643);
   const blocks = f.call('milepost.plan.list').blocks;

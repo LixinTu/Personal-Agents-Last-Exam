@@ -93,10 +93,10 @@ async function planFor(call, assessmentId) {
   state = await read(call);
   for (const b of state.blocks.filter(x => x.status === 'planned' && targets.has(x.skill_id)).reverse()) {
     const before = await project(call, assessmentId);
-    if (before.get(b.skill_id).projected_level < before.get(b.skill_id).target) continue;  // still short: keep it
+    if (!before.get(b.skill_id).reaches_target) continue;  // still short: keep it
     await call('milepost.plan.remove_block', {id: b.id});
     const p = await project(call, assessmentId);
-    if ([...p.values()].some(s => s.projected_level < s.target && before.get(s.skill_id).projected_level >= s.target)) {
+    if ([...p.values()].some(s => !s.reaches_target && before.get(s.skill_id).reaches_target)) {
       await call('milepost.plan.add_block', {skill_id: b.skill_id, start: b.start, minutes: b.minutes});
     } else done.removed.push(b.id);
   }
@@ -105,7 +105,7 @@ async function planFor(call, assessmentId) {
   for (;;) {
     let p = await project(call, assessmentId);
     for (;;) {
-      const short = [...p.values()].filter(s => !dropped.has(s.skill_id) && s.projected_level < s.target)
+      const short = [...p.values()].filter(s => !dropped.has(s.skill_id) && !s.reaches_target)
         .sort((a, b) => (a.target - a.projected_level) - (b.target - b.projected_level));
       if (!short.length) return done;
       state = await read(call);
@@ -115,7 +115,7 @@ async function planFor(call, assessmentId) {
       done.added.push(r.id);
       p = await project(call, assessmentId);
     }
-    const short = [...p.values()].filter(s => !dropped.has(s.skill_id) && s.projected_level < s.target)
+    const short = [...p.values()].filter(s => !dropped.has(s.skill_id) && !s.reaches_target)
       .sort((a, b) => (b.target - b.projected_level) - (a.target - a.projected_level));
     const worst = short[0].skill_id;
     dropped.add(worst); done.dropped.push(worst);

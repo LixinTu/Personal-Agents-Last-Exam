@@ -61,7 +61,7 @@ function projection(data, now, assessmentId) {
 function project(data, now, assessmentId) {
   const p = projection(data, now, assessmentId);
   return {as_of: now, rule_version: VERSION, assessment_id: p.assessment.id, date: p.assessment.date,
-    skills: p.levels.map(x => ({skill_id: x.skill_id, projected_level: round3(x.level), target: x.target}))};
+    skills: p.levels.map(x => ({skill_id: x.skill_id, projected_level: round3(x.level), target: x.target, reaches_target: x.level >= x.target}))};
 }
 function preferences(data, now) {
   const p = data.preferences;

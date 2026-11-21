@@ -43,7 +43,7 @@ A twin is a copy of the task's seed with one decisive part of the student's reco
 ## 6. Pitfalls
 
 - Levels depend on the replay: adding a session before an existing result does not change that result's level, only the stability afterwards.
-- `plan.project` refuses an assessment whose date has passed (`invalid_state`).
+- `plan.project` refuses an assessment whose date has passed (`invalid_state`). Its `reaches_target` is judged on the unrounded level, as the plan checker does; `projected_level` is rounded to three decimals, so 0.650 against a target of 0.65 can still be short.
 - A block that ends without a completed session becomes `missed`; a late `practice.completed` naming it marks it `done`.
 - Student-reported practice can be removed but not edited; platform sessions cannot be removed (`not_removable`).
 - Assessment targets need levels of at least 0.01; result levels may be 0.

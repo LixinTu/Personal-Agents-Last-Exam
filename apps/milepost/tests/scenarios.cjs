@@ -178,3 +178,19 @@ test('scenarios: the grader runs from the command line on a snapshot file', () =
   assert.equal(spawnSync(process.execPath, [script, reference, spec.id], {encoding: 'utf8'}).status, 2);
   fs.rmSync(dir, {recursive: true, force: true});
 });
+
+// Found by an agent trial (Codex with gpt-6.2-astra, s4 run 1): the final plan projected alg-7-4 at 0.649535,
+// shown as 0.65 against a target of 0.65. The projection now says whether each target is reached on the exact level.
+test('plan.project: a level that rounds up to its target is reported as not reached', () => {
+  const spec = SPECS.find(s => s.id === 's4-checkin-result'), f = start(spec, 'base');
+  play(f, [['milepost.plan.remove_block', {id: 'blk-s4-5'}], ['milepost.plan.remove_block', {id: 'blk-s4-6'}], ['milepost.plan.remove_block', {id: 'blk-s4-7'}],
+    ['milepost.plan.remove_block', {id: 'blk-s4-10'}], ['milepost.plan.update_block', {id: 'blk-s4-8', patch: {minutes: 80}}],
+    ['milepost.plan.update_block', {id: 'blk-s4-9', patch: {minutes: 80}}], ['milepost.plan.update_block', {id: 'blk-s4-11', patch: {minutes: 80}}],
+    ['milepost.plan.add_block', {skill_id: 'alg-7-5', start: '2027-03-10T06:30:00-05:00', minutes: 30}],
+    ['milepost.plan.add_block', {skill_id: 'alg-7-4', start: '2027-03-10T07:00:00-05:00', minutes: 30}]]);
+  const s = f.call('milepost.plan.project', {assessment_id: 'alg-quiz-factoring'}).skills.find(x => x.skill_id === 'alg-7-4');
+  assert.deepEqual([s.projected_level, s.target, s.reaches_target], [0.65, 0.65, false]);
+  const checker = checkPlan(f.snapshot(), {assessment_id: 'alg-quiz-factoring'}).assessment.skills.find(x => x.skill_id === 'alg-7-4');
+  assert.equal(checker.reaches_target, s.reaches_target, 'The Agent sees what the grader decides');
+  assert.equal(grade(f.snapshot(), spec, 'base').checks.find(c => c.name === 'all_targets_reached').pass, false);
+});
