@@ -172,3 +172,42 @@ for (const id of ['maya', 'daniel']) {
     assert.deepEqual([hash(restored.data), restored.virtual_now], [hash(data), profile.now]);
   });
 }
+
+// The reference scenarios end to end over MCP: Infra loads the bundle and applies the setup (events and clock
+// moves) in order; the Agent runs the reference with versions and request IDs; the grader reads env.snapshot.
+const {grade} = require('../examples/scenarios/grade.cjs');
+const {scenarios} = require('../scripts/build-scenarios.cjs');
+async function scenarioRun(spec, variant, calls, label) {
+  const dir = path.join(__dirname, '../examples/scenarios', spec.id, variant), read = f => JSON.parse(fs.readFileSync(path.join(dir, f), 'utf8'));
+  const {infra, agent} = await session(`${spec.id}-${variant}-${label}`, spec.assessment_id ? 'scenario' : 'sandbox');
+  const loaded = await infra.call('env.load_seed', {expected_version: (await infra.call('env.snapshot')).version, request_id: 'load', data: read('seed.json'),
+    binding: read('binding.json'), bundle: {dataset: read('dataset.json'), catalog: read('catalog.json'), blobs: {}}, virtual_now: spec.load_at});
+  assert.equal(loaded.status, 'ready');
+  for (const [i, step] of spec.setup.entries()) {
+    const expected_version = (await infra.call('env.snapshot')).version;
+    const r = step.event ? await infra.call('env.apply_event', {expected_version, event: step.event})
+      : await infra.call('env.advance_time', {expected_version, virtual_now: step.advance_to, request_id: 'setup-' + i});
+    assert.equal(r.status, 'committed', JSON.stringify(r));
+  }
+  let refused = 0;
+  for (const [i, [name, args]] of calls.entries()) {
+    const expected_version = (await agent.call('milepost.plan.list')).version;
+    const r = await agent.call(name, {...args, expected_version, request_id: 'req-' + i});
+    if (r.status !== 'committed') refused++;
+  }
+  const snap = (await infra.call('env.snapshot')).snapshot;
+  assert.equal(snap.virtual_now, spec.ask_at);
+  return {result: grade(snap, spec, variant), refused};
+}
+for (const spec of scenarios()) {
+  test(`scenario ${spec.id}: setup and references run through the real Core; the twin answer fails the base and vice versa`, async () => {
+    for (const variant of ['base', 'twin']) {
+      const {result, refused} = await scenarioRun(spec, variant, spec.runs[variant].reference, 'ref');
+      assert.deepEqual([result.pass, refused], [true, 0], JSON.stringify(result.checks.filter(c => !c.pass)));
+    }
+    assert.equal((await scenarioRun(spec, 'base', spec.runs.twin.reference, 'cross')).result.pass, false);
+    const control = spec.runs.base.controls.find(c => c.expect_refused) || spec.runs.base.controls[0];
+    const {result, refused} = await scenarioRun(spec, 'base', control.calls, 'control');
+    assert.deepEqual([result.checks.filter(c => !c.pass).map(c => c.name), refused], [control.fails, control.expect_refused || 0], control.name);
+  });
+}

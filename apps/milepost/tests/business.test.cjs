@@ -6,3 +6,4 @@ require('./events.cjs');
 require('./integrity.cjs');
 require('./task-example.cjs');
 require('./fixtures.cjs');
+require('./scenarios.cjs');
