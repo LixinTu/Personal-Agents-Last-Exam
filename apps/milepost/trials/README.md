@@ -83,3 +83,26 @@ Isolation: each run has an empty working directory and a fresh configuration dir
 - **A discarded batch.** The first Codex batch ran with `approval_policy = "never"`, under which Codex refuses every call that needs approval, including all Milepost writes: the agent could read but not act. Its 6 finished runs and 1 interrupted run were invalid and were deleted. `agent-cli.cjs` now marks any run with a refused call invalid.
 
 What this shows: current agents can solve all four scenarios end to end through Milepost's tools alone (23 of 24 runs), while the 7B local model solves none and the scripted planner passes 7 of 8 members. The scenarios show that the environment works with real agents. They are not hard enough to separate strong agents, so Tasks built on Milepost need harder setups (longer horizons, competing assessments, requests that need asking back). The twins were not run with these agents.
+
+## Twins with the agent products: environment at `70c45b2`
+
+The same agents, settings and isolation on the twin members, 3 runs per scenario, after the `reaches_target` fix.
+
+| Scenario | Claude Code + Opus 5.5 | Codex + gpt-6.2-astra |
+| --- | --- | --- |
+| s1 cells exam | 3 of 3 | 3 of 3 |
+| s2 four blocks | 3 of 3 | 3 of 3 |
+| s3 exam moved | 3 of 3 | 3 of 3 |
+| s4 check-in result | 3 of 3 | not run: the ChatGPT plan's usage limit was reached, so the service refused all three runs; they are not counted |
+| **All** | **12 of 12** | **9 of 9** |
+
+Every valid run changed the decision its twin is about. Read from the final snapshots:
+
+| Scenario | Base member (both agents, every run) | Twin member (every valid run) |
+| --- | --- | --- |
+| s1 | one block each for bio-5-1 and bio-5-3 | no block for either |
+| s2 | two student reports: Wednesday's alg-7-3 and Friday's alg-7-4 | no report |
+| s3 | two bio-4-3 blocks and nothing for the bio-5 skills | one block each for bio-4-3, bio-5-1, bio-5-2 and bio-5-3 |
+| s4 | one short alg-7-5 review | no alg-7-5 block (Claude Code; Codex not run) |
+
+Time and usage: Claude Code 505 s in all, an API-equivalent USD 1.88 used from the subscription; Codex 392 s, 1.39M input tokens (1.19M cached) and 9k output tokens. So the strong agents read the record and change exactly the decision each twin targets, while the controls in `tests/scenarios.cjs` show that a run which ignores the record fails one member of each pair.
