@@ -86,7 +86,9 @@ fixtures/catalog, fixtures/profiles hand-written course catalog and student prof
 fixtures/students/<id>/            full fixtures, one load bundle per student (generated)
 scripts/build-fixtures.cjs         builds the full fixtures with a fixed seed
 scripts/build-scenarios.cjs        builds the reference scenario bundles
-examples/scenarios/                four reference scenarios with twins, grader, scripted baseline and bound
+examples/scenarios/                four reference scenarios with twins, grader, scripted baseline, bound and player
+trials/                            agent-trial harness for an OpenAI-compatible model endpoint, and its results
+docs/reproduce.md                  reproduction guide for an independent reviewer
 examples/                          walkthrough, scenario event, one example per event type, worked task example
 docs/task-authoring.md             guide for Task authors and graders
 gui/                               reviewer renderer
