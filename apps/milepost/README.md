@@ -39,6 +39,10 @@ Milepost enforces only its own limits (no overlapping blocks or sessions, no blo
 
 `fixtures/minimal.json` is the small example student of E1–E6 (two skills, two assessments); `fixtures/clock.json` starts the clock at Mon 2027-03-01 09:00 (−05:00). Tasks load their own seed, history and starting time with `env.load_seed` (`virtual_now`), move the clock between sessions with `env.advance_time` (no handler runs: mastery and missed blocks are computed when read) and restore that seed and time with `env.reset`. The `scenario` policy profile allows reads and plan writes; `sandbox` adds the practice tools.
 
+## Building Tasks
+
+[`docs/task-authoring.md`](docs/task-authoring.md) explains how to write a student's data, set the time, apply events, grade from state and build twins. [`examples/task-data/`](examples/task-data/README.md) is a worked example ("Get me ready for Friday's quiz") with its twin and an example grader.
+
 ## Plan checker for Task graders
 
 `src/checker.cjs` exports `checkPlan(snapshot, {assessment_id})`, a pure function over `env.snapshot`'s `snapshot` (or any `{data, virtual_now}`). It returns the projected level of each target skill with `reaches_target`, and `broken_rules`: planned blocks on rest days, outside available hours, outside the block length, or on days over the daily cap (the cap also counts done blocks). It is not an Agent tool; give its output to graders only. Tasks define success.
@@ -66,11 +70,12 @@ schemas/                           seed and event schemas (generated), state env
 scripts/build-contracts.cjs        generates tools.json and the seed/event schemas
 contribution/                      capability, GUI, asset-catalog and dataset declarations
 fixtures/                          example student, binding, policies and clock
-examples/                          walkthrough, scenario event and one example per event type
+examples/                          walkthrough, scenario event, one example per event type, worked task example
+docs/task-authoring.md             guide for Task authors and graders
 gui/                               reviewer renderer
 tests/                             business tests, harness, schema validator and runtime tests
 ```
 
 ## Status and remaining work for this first version
 
-Implemented: all 13 tools, 5 event handlers, learner rule v1, the plan checker, the reviewer renderer, the E1–E6 example student and its tests. Still to come, as planned in the proposal: the two full fixtures (three courses, about 60 skills, six assessments) built from hand-written profiles, the four reference scenarios with their twins and controls, agent trials with a local open-weight model, and an independent reproduction.
+Implemented: all 13 tools, 5 event handlers, learner rule v1, the plan checker, the reviewer renderer, the E1–E6 example student and its tests, a guide for Task authors and a worked task example with its twin and controls. Still to come, as planned in the proposal: the two full fixtures (three courses, about 60 skills, six assessments) built from hand-written profiles, the four reference scenarios with their twins and controls, agent trials with a local open-weight model, and an independent reproduction.
