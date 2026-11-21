@@ -1,7 +1,8 @@
 'use strict';
 // Agent tool handlers. Writes work on Core's copy of the data; Core validates, versions and commits them.
 const {fail, copy} = require('./domain-utils.cjs');
-const {ms, overlaps} = require('./time.cjs');
+const {ms, overlaps, local} = require('./time.cjs');
+const nowIs = (data, now) => ` It is now ${now}, ${local(now, data.student.time_zone).weekday}.`;
 const m = require('./model.cjs');
 const v = require('./views.cjs');
 
@@ -16,10 +17,10 @@ const READS = {
   'milepost.preferences.get': (data, now) => v.preferences(data, now)
 };
 
-const skill = (data, id) => m.byId(data.skills, id, 'not_found', 'Skill');
+const skill = (data, id) => m.byId(data.skills, id, 'not_found', 'Skill', 'milepost.skills.list');
 function checkBlock(data, block, now) {
   skill(data, block.skill_id);
-  if (ms(block.start) < ms(now)) fail('past_block', 'A study block cannot start in the past.');
+  if (ms(block.start) < ms(now)) fail('past_block', 'A study block cannot start in the past.' + nowIs(data, now));
   const span = m.blockInterval(block);
   if (data.plan.some(b => b.id !== block.id && overlaps(span, m.blockInterval(b)))) fail('overlap', 'The block overlaps another study block.');
 }
@@ -31,7 +32,7 @@ const WRITES = {
   'milepost.practice.record'(ctx, data, args) {
     const now = ctx.virtual_now;
     skill(data, args.skill_id);
-    if (ms(args.ended_at) > ms(now)) fail('invalid_time', 'A reported session cannot end in the future.');
+    if (ms(args.ended_at) > ms(now)) fail('invalid_time', 'A reported session cannot end in the future.' + nowIs(data, now));
     const session = {id: m.nextId(data, 'ses'), skill_id: args.skill_id, minutes: args.minutes, ended_at: args.ended_at,
       source: 'student_report', block_id: null, recorded_at: now};
     const base = data.mastery.find(r => r.skill_id === args.skill_id).as_of;
@@ -42,7 +43,7 @@ const WRITES = {
     return session.id;
   },
   'milepost.practice.remove'(ctx, data, args) {
-    const session = m.byId(data.practice, args.id, 'not_found', 'Practice session');
+    const session = m.byId(data.practice, args.id, 'not_found', 'Practice session', 'milepost.practice.list');
     if (session.source !== 'student_report') fail('not_removable', 'Only student-reported practice can be removed.');
     data.practice = data.practice.filter(s => s.id !== session.id);
     m.logEntry(ctx, data, 'milepost.practice.remove', args, session.id, {skill_id: session.skill_id, minutes: session.minutes, ended_at: session.ended_at});
@@ -59,7 +60,7 @@ const WRITES = {
   },
   'milepost.plan.update_block'(ctx, data, args) {
     const now = ctx.virtual_now;
-    const block = m.byId(data.plan, args.id, 'not_found', 'Study block');
+    const block = m.byId(data.plan, args.id, 'not_found', 'Study block', 'milepost.plan.list');
     if (!Object.keys(args.patch).length) fail('invalid_arguments', 'The patch must change at least one field.');
     plannedNotStarted(block, now, 'changed');
     if (ms(block.start) < ms(now)) fail('invalid_state', 'A block that has started cannot be changed.');
@@ -71,7 +72,7 @@ const WRITES = {
     return block.id;
   },
   'milepost.plan.remove_block'(ctx, data, args) {
-    const block = m.byId(data.plan, args.id, 'not_found', 'Study block');
+    const block = m.byId(data.plan, args.id, 'not_found', 'Study block', 'milepost.plan.list');
     plannedNotStarted(block, ctx.virtual_now, 'removed');
     data.plan = data.plan.filter(b => b.id !== block.id);
     m.logEntry(ctx, data, 'milepost.plan.remove_block', args, block.id, {skill_id: block.skill_id, start: block.start, minutes: block.minutes});

@@ -77,7 +77,7 @@ test('workflow 3: reported practice is recorded with its source; future, overlap
   const id = f.call('milepost.practice.record', {skill_id: F, minutes: 30, ended_at: at(2, '20:00')}).id;
   refused(f, () => f.call('milepost.practice.record', {skill_id: X, minutes: 20, ended_at: at(2, '19:45')}), 'overlap');
   const sessions = f.call('milepost.practice.list').sessions;
-  assert.deepEqual(sessions, [{id, skill_id: F, minutes: 30, started_at: at(2, '19:30'), ended_at: at(2, '20:00'), source: 'student_report', block_id: null}]);
+  assert.deepEqual(sessions, [{id, skill_id: F, minutes: 30, started_at: at(2, '19:30'), ended_at: at(2, '20:00'), day: 'Tue', source: 'student_report', block_id: null}]);
   f.event({event_id: 'ev-w3', at: at(2, '21:30'), operation: 'milepost.practice.completed', payload: {skill_id: X, minutes: 25}});
   const platform = f.call('milepost.practice.list', {skill_id: X}).sessions[0];
   assert.equal(platform.source, 'platform');
@@ -109,4 +109,18 @@ test('workflow 4: a posted result sets the measured level; a moved assessment ch
   const after = f.call('milepost.plan.project', {assessment_id: 'quiz-3'});
   assert.equal(after.date, '2027-03-08T10:00:00-05:00');
   assert.ok(after.skills[0].projected_level < before.skills[0].projected_level, 'A later date with no plan means more forgetting');
+});
+
+test('agent affordances: refusals name the read tool with the valid IDs and the current time; reads give local weekdays', () => {
+  const f = fixture();
+  const message = (fn, code) => { try { fn(); } catch (e) { assert.equal(e.code, code); return e.message; } assert.fail('Expected ' + code); };
+  assert.match(message(() => f.call('milepost.plan.project', {assessment_id: 'cells_exam'}), 'not_found'), /milepost\.assessments\.list lists the valid IDs/);
+  assert.match(message(() => f.call('milepost.plan.add_block', {skill_id: 'placeholder_skill_id', start: at(2, '19:00'), minutes: 30}), 'not_found'), /milepost\.skills\.list lists the valid IDs/);
+  assert.match(message(() => f.call('milepost.skills.list', {course_id: 'Biology'}), 'not_found'), /milepost\.courses\.list lists the valid IDs/);
+  assert.match(message(() => f.call('milepost.plan.remove_block', {id: 'blk-9'}), 'not_found'), /milepost\.plan\.list lists the valid IDs/);
+  assert.match(message(() => f.call('milepost.plan.add_block', {skill_id: F, start: '2027-02-28T19:00:00-05:00', minutes: 30}), 'past_block'), /It is now 2027-03-01T09:00:00-05:00, Mon\./);
+  assert.match(message(() => f.call('milepost.practice.record', {skill_id: F, minutes: 30, ended_at: at(2, '20:00')}), 'invalid_time'), /It is now 2027-03-01T09:00:00-05:00, Mon\./);
+  assert.deepEqual(f.call('milepost.assessments.list').assessments.map(a => [a.id, a.day]), [['check-1', 'Thu'], ['quiz-3', 'Fri']]);
+  f.call('milepost.plan.add_block', {skill_id: F, start: at(2, '19:00'), minutes: 30});
+  assert.deepEqual(f.call('milepost.plan.list').blocks.map(b => b.day), ['Tue']);
 });

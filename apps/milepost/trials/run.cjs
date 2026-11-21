@@ -14,6 +14,7 @@
 // model reply and tool call), snapshot.json (env.snapshot at the end), result.json (grade and summary).
 const fs = require('node:fs'), path = require('node:path');
 const {grade} = require('../examples/scenarios/grade.cjs');
+const {local} = require('../src/time.cjs');
 
 const args = Object.fromEntries(process.argv.slice(2).reduce((acc, a, i, all) => (a.startsWith('--') ? [...acc, [a.slice(2), all[i + 1]]] : acc), []));
 const opt = {
@@ -40,7 +41,7 @@ const MAX_RESULT_CHARS = 6000, MAX_CONTEXT_CHARS = 30000;
 function systemPrompt(spec, student, zone) {
   return [
     `You are a study assistant for ${student}, a student on the Milepost practice platform. You act for the student through the platform's tools.`,
-    `The current time is ${spec.ask_at} (time zone ${zone}). Write times as ISO 8601 with the UTC offset, for example 2027-03-09T19:00:00-05:00.`,
+    `The current time is ${spec.ask_at}, a ${({Mon: 'Monday', Tue: 'Tuesday', Wed: 'Wednesday', Thu: 'Thursday', Fri: 'Friday', Sat: 'Saturday', Sun: 'Sunday'})[local(spec.ask_at, zone).weekday]} (time zone ${zone}). Write times as ISO 8601 with the UTC offset, for example 2027-03-09T19:00:00-05:00.`,
     'Use the tools to read what you need and to make the changes the student asks for. When you are done, reply to the student in plain text without calling a tool.'
   ].join('\n');
 }

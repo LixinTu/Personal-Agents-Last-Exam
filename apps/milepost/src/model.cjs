@@ -20,9 +20,9 @@ function nextId(data, prefix) {
   while (ids.has(prefix + '-' + n)) n++;
   return prefix + '-' + n;
 }
-function byId(list, id, code = 'not_found', what = 'Object') {
+function byId(list, id, code = 'not_found', what = 'Object', lister = null) {
   const item = list.find(x => x.id === id);
-  if (!item) fail(code, what + ' does not exist for this student.');
+  if (!item) fail(code, what + ' does not exist for this student.' + (lister ? ` ${lister} lists the valid IDs.` : ''));
   return item;
 }
 const sessionInterval = s => ({start: shift(s.ended_at, -s.minutes), end: s.ended_at});

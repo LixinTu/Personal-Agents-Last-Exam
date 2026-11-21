@@ -117,7 +117,7 @@
   },
   {
     "name": "milepost.skills.list",
-    "description": "List skills and their prerequisites, optionally for one course. An unknown course returns not_found.",
+    "description": "List skills (their IDs, titles and prerequisites), optionally for one course ID from courses.list. An unknown course returns not_found.",
     "read_only": true,
     "scope": "milepost.skills.list",
     "resource_target": "current account",
@@ -322,7 +322,7 @@
   },
   {
     "name": "milepost.assessments.list",
-    "description": "Assessments with their date, target level per skill, status and posted result.",
+    "description": "Assessments with their ID, date, target level per skill, status and posted result. Use these IDs with plan.project.",
     "read_only": true,
     "scope": "milepost.assessments.list",
     "resource_target": "current account",
@@ -380,6 +380,17 @@
               "date": {
                 "type": "string",
                 "format": "date-time"
+              },
+              "day": {
+                "enum": [
+                  "Mon",
+                  "Tue",
+                  "Wed",
+                  "Thu",
+                  "Fri",
+                  "Sat",
+                  "Sun"
+                ]
               },
               "targets": {
                 "type": "array",
@@ -459,6 +470,7 @@
               "id",
               "title",
               "date",
+              "day",
               "targets",
               "status",
               "result"
@@ -552,6 +564,17 @@
                 "type": "string",
                 "format": "date-time"
               },
+              "day": {
+                "enum": [
+                  "Mon",
+                  "Tue",
+                  "Wed",
+                  "Thu",
+                  "Fri",
+                  "Sat",
+                  "Sun"
+                ]
+              },
               "source": {
                 "enum": [
                   "platform",
@@ -576,6 +599,7 @@
               "minutes",
               "started_at",
               "ended_at",
+              "day",
               "source",
               "block_id"
             ],
@@ -658,6 +682,17 @@
                 "type": "string",
                 "format": "date-time"
               },
+              "day": {
+                "enum": [
+                  "Mon",
+                  "Tue",
+                  "Wed",
+                  "Thu",
+                  "Fri",
+                  "Sat",
+                  "Sun"
+                ]
+              },
               "minutes": {
                 "type": "integer",
                 "minimum": 5,
@@ -676,6 +711,7 @@
               "skill_id",
               "start",
               "end",
+              "day",
               "minutes",
               "status"
             ],
@@ -696,7 +732,7 @@
   },
   {
     "name": "milepost.plan.project",
-    "description": "For the stored plan and one future assessment, the level each target skill would reach on the assessment date if every planned block is completed, under learner rule milepost-learner/1. Study-rule checks are not included. Unknown assessment: not_found; past assessment: invalid_state.",
+    "description": "For the stored plan and one future assessment (an ID from assessments.list), the level each target skill would reach on the assessment date if every planned block is completed, under learner rule milepost-learner/1. Study-rule checks are not included. Unknown assessment: not_found; past assessment: invalid_state.",
     "read_only": true,
     "scope": "milepost.plan.project",
     "resource_target": "current account",
@@ -945,7 +981,7 @@
   },
   {
     "name": "milepost.practice.record",
-    "description": "Record practice the student reports doing elsewhere, with its skill, minutes and end time. Refused: unknown skill (not_found), a session ending in the future (invalid_time), or one overlapping a recorded session (overlap).",
+    "description": "Record practice the student reports doing elsewhere, with its skill (an ID from skills.list), minutes and end time. Refused: unknown skill (not_found), a session ending in the future (invalid_time), or one overlapping a recorded session (overlap).",
     "read_only": false,
     "scope": "milepost.practice.record",
     "resource_target": "current account",
@@ -1124,7 +1160,7 @@
   },
   {
     "name": "milepost.plan.add_block",
-    "description": "Add a study block for one skill. Refused: unknown skill (not_found), a start in the past (past_block) or an overlap with another block (overlap).",
+    "description": "Add a study block for one skill (an ID from skills.list). Refused: unknown skill (not_found), a start in the past (past_block) or an overlap with another block (overlap).",
     "read_only": false,
     "scope": "milepost.plan.add_block",
     "resource_target": "current account",
