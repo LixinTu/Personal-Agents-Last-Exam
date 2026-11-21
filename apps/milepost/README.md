@@ -95,6 +95,6 @@ gui/                               reviewer renderer
 tests/                             business tests, harness, schema validator and runtime tests
 ```
 
-## Status and remaining work for this first version
+## Status and remaining work
 
-Implemented: all 13 tools, 5 event handlers, learner rule v1, the plan checker, the reviewer renderer, the E1–E6 example student and its tests, a guide for Task authors, a worked task example with its twin and controls, the two full fixtures with their generator and provenance, and the four reference scenarios with their twins, controls, proofs, grader and scripted baseline. Still to come, as planned in the proposal: agent trials with a local open-weight model and an independent reproduction. The full fixtures await human review of every record.
+Implemented: all 13 tools, 5 event handlers, learner rule v1, the plan checker, the reviewer renderer, the E1–E6 example student and its tests, a guide for Task authors, a worked task example with its twin and controls, the two full fixtures with their generator and provenance, and the four reference scenarios with their twins, controls, proofs, grader and scripted baseline. Agent trials with a local open-weight model ran in two rounds of 12 ([`trials/`](trials/README.md)): round 1 led to clearer refusals and weekday fields, and round 2 showed the remaining failures are planning mistakes. Still to come: an independent reproduction ([`docs/reproduce.md`](docs/reproduce.md)) and human review of every fixture record.

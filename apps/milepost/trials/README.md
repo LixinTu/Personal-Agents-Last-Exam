@@ -33,3 +33,32 @@ What went wrong:
 3. **Changing history and breaking rules (s4).** The model tried to edit done or missed blocks (`invalid_state`, `past_block`) and placed new blocks outside Daniel's study hours. This is a planning mistake rather than a gap in the tools: the refusals name the reason and `preferences.get` gives the hours.
 
 Changes for round 2. In the environment: a `not_found` refusal names the read tool that lists the valid IDs; time refusals state the current time and weekday; blocks, sessions and assessments in read results carry their local weekday (`day`); tool descriptions say where each ID comes from. In the harness: the system prompt names the current weekday.
+
+## Round 2: environment at `b60f972`
+
+Same model, seeds and limits; the system prompt also names the weekday ("The current time is {ask_at}, a Saturday").
+
+**0 of 12 runs passed again, but the failures moved from finding things to planning.**
+
+| | Round 1 | Round 2 |
+| --- | --- | --- |
+| Planning runs (s1, s3, s4) that listed the assessments | 3 of 9 | 9 of 9 |
+| `not_found` refusals, all runs | 78 (in 9 runs) | 45 (in 6 runs; 27 of them one s4 run repeating `skills.list` with course `alg`) |
+| Runs that changed the plan or the record | 3 of 12 (11 writes) | 6 of 12 (33 writes) |
+
+| Scenario | Seed 1 | Seed 2 | Seed 3 |
+| --- | --- | --- | --- |
+| s1 cells exam | fail: targets, rules; 6 blocks added | fail: rules, minutes; 9 blocks added | fail: targets; projected, planned nothing |
+| s2 four blocks | fail: reports; 4 reports in early February | fail: reports; said the missing blocks were recorded | fail: reports; one report later that day, refused |
+| s3 exam moved | fail: rules, after exam, unreached practice; 2 blocks added, none removed | fail: same; nothing changed | fail: same; nothing changed |
+| s4 check-in result | fail: targets; 99 reads, no change | fail: rules, minutes; 3 blocks added, 7 invented block IDs | fail: rules; 5 removed, 3 added, 1 changed |
+
+What still goes wrong:
+
+1. **Study rules (s1 seeds 1-2, s4 seeds 2-3).** All four put blocks outside Daniel's hours (06:30-08:00 on weekdays); s1 seed 1 also made blocks shorter than his 30 minutes and s1 seed 2 went over his 150-minute daily cap. Three of the four had read `preferences.get` first.
+2. **Over-planning (s1 seed 2, s4 seed 2).** More minutes than the task allows.
+3. **Stopping at a projection (s1 seed 3, s3 seeds 2-3, s4 seed 1).** The model read the projection, explained it to the student and changed nothing.
+4. **A stale plan (all s3 runs).** No run removed the blocks on the lost evenings or after the new exam date.
+5. **This week's record (all s2 runs).** No run looked at the week's blocks in `plan.list`. One recorded four reports in early February with the skill of the oldest session; one said the missing blocks were already recorded; one tried a time later the same day and stopped.
+
+These are the planning and reading mistakes the scenarios are built to catch, so the environment stays as it is after round 2. The scripted baseline, which uses the same tools, passes 7 of the 8 scenario members, so the scenarios can be solved with these tools; this 7B model does not solve them. A run with a stronger, hosted model would need a paid API and is not part of this check.
