@@ -12,6 +12,7 @@ node apps/milepost/examples/run.cjs                    # walkthrough: plan, proj
 node --test apps/milepost/tests/runtime.test.cjs       # real public runtime: MCP, versions, receipts, clock, reset
 npm run app:verify -- --app apps/milepost --output .artifacts/milepost.json
 node apps/milepost/scripts/build-contracts.cjs --check # tools.json and the seed/event schemas match their definitions
+node apps/milepost/scripts/build-fixtures.cjs --check  # the full fixtures match their catalog and profiles
 ```
 
 Inside this folder alone, `npm test` and `npm run example` work without the runtime.
@@ -37,7 +38,13 @@ Milepost enforces only its own limits (no overlapping blocks or sessions, no blo
 
 `schemas/seed.schema.json` describes one student account: the course catalog (`courses`, `units`, `skills` with prerequisites), the student's record (`mastery` baseline, `assessments`, `results`, `practice`, `plan`, `preferences`) and `evaluator` data: the student's `learner_params` and the `activity_log` of committed Agent writes. Evaluator data and stability values never appear in a tool result, error or rendered page (`tests/integrity.cjs` and `tests/runtime.test.cjs` plant markers to check this); only Infra's `env.snapshot` returns them. `validateSeed` checks unique IDs, references, prerequisite cycles, one mastery record per skill, result and session timing, block/session consistency and that no history lies after the run's virtual time.
 
-`fixtures/minimal.json` is the small example student of E1–E6 (two skills, two assessments); `fixtures/clock.json` starts the clock at Mon 2027-03-01 09:00 (−05:00). Tasks load their own seed, history and starting time with `env.load_seed` (`virtual_now`), move the clock between sessions with `env.advance_time` (no handler runs: mastery and missed blocks are computed when read) and restore that seed and time with `env.reset`. The `scenario` policy profile allows reads and plan writes; `sandbox` adds the practice tools.
+`fixtures/minimal.json` is the small example student of E1–E6 (two skills, two assessments); `fixtures/clock.json` starts the clock at Mon 2027-03-01 09:00 (−05:00).
+
+## Full fixtures
+
+[`fixtures/students/`](fixtures/students/README.md) holds two invented students, Maya Ortiz and Daniel Kim, who share three courses (algebra, statistics, biology: 16 units, 60 skills with prerequisites) and six assessments, and differ in mastery, practice history and study rules. Each folder is one load bundle: `seed.json`, `binding.json`, `dataset.json` (sources and expected counts) and an empty asset `catalog.json`. `scripts/build-fixtures.cjs` builds them from the hand-written catalog `fixtures/catalog/courses.json` and the profiles in `fixtures/profiles/`: a seeded starting level per skill, four weeks of practice following the student's habits, a planned week with done and missed blocks, and results of the three past assessments at the learner rule's level plus at most 0.05 of seeded noise. Load a bundle with `env.load_seed` at the profile's `now` (`2027-03-01T09:00:00-05:00`), passing `bundle: {dataset, catalog, blobs: {}}`; Core then checks its provenance and counts strictly, as `tests/runtime.test.cjs` does.
+
+The catalog's names, prerequisites, assessments and targets are Milepost's own. Topic choice and order follow the tables of contents of three OpenStax textbooks, cited per unit and skill (`see`): *Elementary Algebra 2e*, *Introductory Statistics 2e* and *Biology 2e* (Rice University). These books are licensed CC BY-NC-SA 4.0 (checked on openstax.org on 2026-11-21; the proposal's "CC BY 4.0" is out of date), so no text, figures or exercises from them are included. Tasks load their own seed, history and starting time with `env.load_seed` (`virtual_now`), move the clock between sessions with `env.advance_time` (no handler runs: mastery and missed blocks are computed when read) and restore that seed and time with `env.reset`. The `scenario` policy profile allows reads and plan writes; `sandbox` adds the practice tools.
 
 ## Building Tasks
 
@@ -70,6 +77,9 @@ schemas/                           seed and event schemas (generated), state env
 scripts/build-contracts.cjs        generates tools.json and the seed/event schemas
 contribution/                      capability, GUI, asset-catalog and dataset declarations
 fixtures/                          example student, binding, policies and clock
+fixtures/catalog, fixtures/profiles hand-written course catalog and student profiles
+fixtures/students/<id>/            full fixtures, one load bundle per student (generated)
+scripts/build-fixtures.cjs         builds the full fixtures with a fixed seed
 examples/                          walkthrough, scenario event, one example per event type, worked task example
 docs/task-authoring.md             guide for Task authors and graders
 gui/                               reviewer renderer
@@ -78,4 +88,4 @@ tests/                             business tests, harness, schema validator and
 
 ## Status and remaining work for this first version
 
-Implemented: all 13 tools, 5 event handlers, learner rule v1, the plan checker, the reviewer renderer, the E1–E6 example student and its tests, a guide for Task authors and a worked task example with its twin and controls. Still to come, as planned in the proposal: the two full fixtures (three courses, about 60 skills, six assessments) built from hand-written profiles, the four reference scenarios with their twins and controls, agent trials with a local open-weight model, and an independent reproduction.
+Implemented: all 13 tools, 5 event handlers, learner rule v1, the plan checker, the reviewer renderer, the E1–E6 example student and its tests, a guide for Task authors, a worked task example with its twin and controls, and the two full fixtures with their generator and provenance. Still to come, as planned in the proposal: the four reference scenarios with their twins and controls, agent trials with a local open-weight model, and an independent reproduction. The full fixtures await human review of every record.

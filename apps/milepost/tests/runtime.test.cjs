@@ -140,3 +140,35 @@ test('reset restores the loaded data and clock; the evaluator-only records never
   assert.deepEqual([hash(restored.data), restored.virtual_now], [hash(loaded.data), loaded.virtual_now]);
   assert.ok(restored.epoch > current.snapshot.epoch);
 });
+
+// The full fixtures load as complete bundles: provenance and counts are checked strictly by the Core, so a
+// student never arrives as an unidentified record import.
+for (const id of ['maya', 'daniel']) {
+  test(`full fixture ${id}: loads through env.load_seed with its bundle; reset returns to it`, async () => {
+    const dir = path.join(__dirname, '../fixtures/students', id), read = f => JSON.parse(fs.readFileSync(path.join(dir, f), 'utf8'));
+    const profile = JSON.parse(fs.readFileSync(path.join(__dirname, '../fixtures/profiles', id + '.json'), 'utf8'));
+    const data = read('seed.json'), dataset = read('dataset.json');
+    const {infra, agent} = await session('full-' + id);
+    const v0 = (await infra.call('env.snapshot')).version;
+    const loaded = await infra.call('env.load_seed', {expected_version: v0, request_id: 'load-' + id, data, binding: read('binding.json'),
+      bundle: {dataset, catalog: read('catalog.json'), blobs: {}}, virtual_now: profile.now});
+    assert.equal(loaded.status, 'ready');
+    assert.equal(loaded.quality.automated_pass, true);
+    assert.equal(loaded.quality.dataset_id, 'milepost-student-' + id);
+    assert.deepEqual(loaded.quality.counts.records, dataset.expected_counts.records);
+    assert.ok(loaded.quality.checks.some(c => c.name === 'expected_counts' && c.status === 'pass'), 'Counts are checked strictly');
+    assert.deepEqual(loaded.quality.warnings, ['Realism, variation and licensing still require human review.']);
+    const mastery = await agent.call('milepost.mastery.get', {});
+    assert.equal(mastery.skills.length, 60);
+    assert.equal(mastery.as_of, profile.now);
+    const snap = (await infra.call('env.snapshot')).snapshot;
+    assert.equal(hash(snap.data), hash(data));
+    const version = (await agent.call('milepost.plan.list')).version;
+    assert.equal((await agent.call('milepost.plan.add_block', {skill_id: 'bio-5-2', start: '2027-03-02T19:00:00-05:00', minutes: 40,
+      expected_version: version, request_id: 'req-' + id})).status, 'committed');
+    const current = await infra.call('env.snapshot');
+    assert.equal((await infra.call('env.reset', {expected_version: current.version})).status, 'ready');
+    const restored = (await infra.call('env.snapshot')).snapshot;
+    assert.deepEqual([hash(restored.data), restored.virtual_now], [hash(data), profile.now]);
+  });
+}

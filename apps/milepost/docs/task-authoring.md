@@ -4,7 +4,7 @@ For Task authors and graders. Milepost holds one student's courses, skill-by-ski
 
 ## 1. Write the student's data
 
-A seed follows `schemas/seed.schema.json`; `fixtures/minimal.json` is a complete small example.
+A seed follows `schemas/seed.schema.json`; `fixtures/minimal.json` is a complete small example. To start from a realistic student, copy one of the full fixtures in `fixtures/students/` and load it with its `binding.json` and `bundle: {dataset, catalog, blobs: {}}`. Without a bundle, Core records the data as an unidentified import that needs review. If your Task changes a fixture, say how in the copy's `dataset.json` (`transformations`) and update `expected_counts.records`.
 
 - **Catalog:** `courses`, `units` (with `course_id`, `position`) and `skills` (with `unit_id` and `prerequisites`). Prerequisites must exist and form no cycle.
 - **Mastery baseline:** exactly one `mastery` record per skill: `level`, `stability_days` (within the student's `learner_params` bounds), `as_of` (the time the level refers to; `null` means never practised or assessed, so it does not fade) and `last_practised_at` (not after `as_of`).

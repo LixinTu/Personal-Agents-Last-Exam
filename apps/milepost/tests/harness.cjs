@@ -16,10 +16,10 @@ const output = new Map(tools.map(t => [t.name, compile(t.outputSchema, root)]));
 const MINIMAL = require('../fixtures/minimal.json');
 const CLOCK = require('../fixtures/clock.json').initial_time;
 
-function fixture({seed = MINIMAL, now = CLOCK, logging = true} = {}) {
+function fixture({seed = MINIMAL, now = CLOCK, logging = true, binding = require('../fixtures/binding.json')} = {}) {
   let data = structuredClone(seed), revision = 0, requests = 0;
   const logs = [];
-  const ctx = {app_id: APP, run_id: 'test', role: 'agent', virtual_now: now, binding: structuredClone(require('../fixtures/binding.json'))};
+  const ctx = {app_id: APP, run_id: 'test', role: 'agent', virtual_now: now, binding: structuredClone(binding)};
   if (logging) ctx.log = (step, details = {}) => logs.push({step, details: structuredClone(details)});
   const validate = value => { assert.ok(seedValid(value), 'Seed schema'); plugin.validateSeed(ctx, value); };
   validate(data);
