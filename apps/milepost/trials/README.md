@@ -62,3 +62,24 @@ What still goes wrong:
 5. **This week's record (all s2 runs).** No run looked at the week's blocks in `plan.list`. One recorded four reports in early February with the skill of the oldest session; one said the missing blocks were already recorded; one tried a time later the same day and stopped.
 
 These are the planning and reading mistakes the scenarios are built to catch, so the environment stays as it is after round 2. The scripted baseline, which uses the same tools, passes 7 of the 8 scenario members, so the scenarios can be solved with these tools; this 7B model does not solve them. A run with a stronger, hosted model would need a paid API and is not part of this check.
+
+## Agent products: environment at `f89e8c3`
+
+Two coding-agent CLIs as the whole agent, signed in with existing subscriptions (no API key): Claude Code 2.1.325 with `claude-opus-5-5` (default effort), and Codex CLI 0.171.0-alpha.13 with `gpt-6.2-astra` (reasoning effort `xhigh`, the setting configured on this machine; the npm Codex CLI 0.163.0 was refused this model). The harness is [`agent-cli.cjs`](agent-cli.cjs). The agents call the real Agent tools over MCP themselves, including `expected_version` and `request_id`, with the round-2 system prompt (for Codex it is prepended to the request, since `codex exec` has no system-prompt option). Three runs per scenario on the base members; subscription CLIs take no seed, so the runs are independent repeats.
+
+Isolation: each run has an empty working directory and a fresh configuration directory (`CLAUDE_CONFIG_DIR` or `CODEX_HOME`) holding only a link to the existing login, so no user instructions, memories or plugins load. Claude Code runs with built-in tools off (`--tools ""`), `--strict-mcp-config` and only `mcp__milepost` allowed. Codex runs with the shell, browser, computer-use, app, plugin, hook and memory features off and Milepost tools approved without a prompt (`default_tools_approval_mode = "approve"`). `agent-cli.cjs` checks each trace for tool use outside Milepost and for calls the CLI refused; there were none in these 24 runs.
+
+| Scenario | Claude Code + Opus 5.5 | Codex + gpt-6.2-astra |
+| --- | --- | --- |
+| s1 cells exam | 3 of 3 | 3 of 3 |
+| s2 four blocks | 3 of 3 | 3 of 3 |
+| s3 exam moved | 3 of 3 | 3 of 3 |
+| s4 check-in result | 3 of 3 | 2 of 3 |
+| **All** | **12 of 12** | **11 of 12** |
+
+- **Time and usage.** Claude Code: 718 s in all (22-130 s a run); 1.91M cached input tokens read, 0.17M written, 47k output tokens; Claude Code reports an API-equivalent USD 2.66, used from the subscription. Codex: 923 s in all (23-145 s a run); 2.78M input tokens (2.46M cached) and 28k output tokens (13k of them reasoning).
+- **What they did.** Before the first write, every run read the plan, and every planning run (s1, s3, s4) read the study rules and the assessments and called `plan.project`. They sized blocks with repeated projections (4 to 8 per planning run), removed the stale blocks in s3 (10 or 11 per run) and the unneeded ones in s4, and in s2 recorded exactly Wednesday's and Friday's practice. Tool calls per run: s1 16-37, s2 5-7, s3 25-42, s4 16-31. Four Claude Code runs guessed a course ID once (`bio`, `alg`), got the `not_found` hint added after round 1 and went on with the right ID.
+- **The one failure was the environment's.** Codex's final plan in s4 run 1 projected alg-7-4 at 0.649535, which `plan.project` showed as 0.65 against a target of 0.65, so the agent stopped; the grader judges the unrounded level, and 31 minutes instead of 30 for its last alg-7-4 block would have passed. `plan.project` now also returns `reaches_target` on the unrounded level (`02bff62`), and a regression test replays that plan.
+- **A discarded batch.** The first Codex batch ran with `approval_policy = "never"`, under which Codex refuses every call that needs approval, including all Milepost writes: the agent could read but not act. Its 6 finished runs and 1 interrupted run were invalid and were deleted. `agent-cli.cjs` now marks any run with a refused call invalid.
+
+What this shows: current agents can solve all four scenarios end to end through Milepost's tools alone (23 of 24 runs), while the 7B local model solves none and the scripted planner passes 7 of 8 members. The scenarios show that the environment works with real agents. They are not hard enough to separate strong agents, so Tasks built on Milepost need harder setups (longer horizons, competing assessments, requests that need asking back). The twins were not run with these agents.
