@@ -93,8 +93,10 @@ The same agents, settings and isolation on the twin members, 3 runs per scenario
 | s1 cells exam | 3 of 3 | 3 of 3 |
 | s2 four blocks | 3 of 3 | 3 of 3 |
 | s3 exam moved | 3 of 3 | 3 of 3 |
-| s4 check-in result | 3 of 3 | not run: the ChatGPT plan's usage limit was reached, so the service refused all three runs; they are not counted |
-| **All** | **12 of 12** | **9 of 9** |
+| s4 check-in result | 3 of 3 | 3 of 3 |
+| **All** | **12 of 12** | **12 of 12** |
+
+The first Codex attempt at s4 hit the ChatGPT plan's usage limit, so the service refused all three runs; they were deleted, not counted, and run again once the limit reset.
 
 Every valid run changed the decision its twin is about. Read from the final snapshots:
 
@@ -103,6 +105,6 @@ Every valid run changed the decision its twin is about. Read from the final snap
 | s1 | one block each for bio-5-1 and bio-5-3 | no block for either |
 | s2 | two student reports: Wednesday's alg-7-3 and Friday's alg-7-4 | no report |
 | s3 | two bio-4-3 blocks and nothing for the bio-5 skills | one block each for bio-4-3, bio-5-1, bio-5-2 and bio-5-3 |
-| s4 | one short alg-7-5 review | no alg-7-5 block (Claude Code; Codex not run) |
+| s4 | one short alg-7-5 review | no alg-7-5 block |
 
-Time and usage: Claude Code 505 s in all, an API-equivalent USD 1.88 used from the subscription; Codex 392 s, 1.39M input tokens (1.19M cached) and 9k output tokens. So the strong agents read the record and change exactly the decision each twin targets, while the controls in `tests/scenarios.cjs` show that a run which ignores the record fails one member of each pair.
+Time and usage: Claude Code 505 s in all, an API-equivalent USD 1.88 used from the subscription; Codex 572 s, 2.28M input tokens (1.99M cached) and 16k output tokens. So the strong agents read the record and change exactly the decision each twin targets, while the controls in `tests/scenarios.cjs` show that a run which ignores the record fails one member of each pair.
