@@ -148,3 +148,20 @@ test('both full fixtures load as bundles with strict provenance and counts', asy
     assert.equal((await agent.call('second-draft.assignments.list', {})).assignments.length, 3);
   }
 });
+
+test('the four reference scenarios play over MCP: each reference passes its member and fails the other', async () => {
+  const {play} = require('../examples/scenarios/play.cjs');
+  const {scenarios} = require('../scripts/build-scenarios.cjs');
+  const out = fs.mkdtempSync(path.join(require('node:os').tmpdir(), 'second-draft-runtime-'));
+  try {
+    for (const s of scenarios()) {
+      for (const variant of ['base', 'twin']) {
+        const r = await play(s.id, variant, 'reference', path.join(out, s.id + '-' + variant));
+        assert.ok(r.grade.pass, `${s.id}/${variant}: ${JSON.stringify(r.grade.checks.filter(c => !c.pass))}`);
+        assert.ok(r.steps.every(([, status]) => ['ready', 'committed'].includes(status)), `${s.id}/${variant} steps: ${JSON.stringify(r.steps)}`);
+      }
+      const crossed = await play(s.id, 'twin', 'control-1', path.join(out, s.id + '-cross'));
+      assert.equal(crossed.grade.pass, false, `${s.id}: the twin's first control (the base reference or no action) fails`);
+    }
+  } finally { fs.rmSync(out, {recursive: true, force: true}); }
+});

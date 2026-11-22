@@ -104,6 +104,7 @@ const SUGGESTION_OUT = obj({id: ID, version_id: ID, paragraph_id: ID, quote: QUO
 const COMMENT_OUT = obj({id: ID, version_id: ID, paragraph_id: ID, quote: QUOTE, from: FROM, criterion_id: NULLABLE(ID), text: TEXT,
   posted_at: DT, status: {enum: ['open', 'addressed', 'resolved']}, replies: list(REPLY, 200)});
 const ASSIGNMENT_ID = 'an assignment ID from assignments.list';
+const KIND_RULE = 'A change is language when exactly one sentence changes, no sentence is added or removed, and at most 30% of that sentence\'s words change; anything else is content (splitting a sentence in two is content, a semicolon is not).';
 const TOOLS = [
   tool('assignments.list', true, 'List the student\'s assignments, optionally for one course ID from policies.get: prompt, due date (with its local weekday), rubric criteria, latest draft version, submissions and grade. Reads change nothing; every read returns the current virtual time as as_of. An unknown course returns not_found.',
     obj({course_id: ID}, []), readOut({assignments: list(obj({id: ID, course_id: ID, title: TITLE, prompt: TEXT, due_at: DT, due_day: DAY,
@@ -134,9 +135,9 @@ const TOOLS = [
     writeIn({comment_id: ID, text: TEXT}), WRITE_OUT),
   tool('comments.set_status', false, 'Mark a comment addressed, or open again. Resolved comments are the commenter\'s to reopen (invalid_state); setting the status it already has is refused (invalid_state). Unknown comment: not_found.',
     writeIn({comment_id: ID, status: {enum: ['addressed', 'open']}}), WRITE_OUT),
-  tool('suggestions.create', false, 'Suggest a replacement for words quoted exactly from one paragraph of the latest version (paragraph IDs from drafts.get). It changes the draft only if the student accepts it, and becomes stale if the quote no longer appears exactly once. Second Draft classifies it as language or content under ' + RULE + '. Refused: unknown assignment or paragraph (not_found), no draft yet (invalid_state), a quote that does not appear exactly once (invalid_quote), or a replacement that changes nothing (invalid_arguments).',
+  tool('suggestions.create', false, 'Suggest a replacement for words quoted exactly from one paragraph of the latest version (paragraph IDs from drafts.get). It changes the draft only if the student accepts it, and becomes stale if the quote no longer appears exactly once. Second Draft classifies it under ' + RULE + ': ' + KIND_RULE + ' Refused: unknown assignment or paragraph (not_found), no draft yet (invalid_state), a quote that does not appear exactly once (invalid_quote), or a replacement that changes nothing (invalid_arguments).',
     writeIn({assignment_id: ID, paragraph_id: ID, quote: QUOTE, replacement: {type: 'string', maxLength: 5000, pattern: '^[^\\r\\n]*$'}}), WRITE_OUT),
-  tool('drafts.edit', false, 'Replace the text of one paragraph of the latest version directly, creating a new version; new or altered sentences are authored by the agent. Second Draft classifies the edit as language or content under ' + RULE + '. Refused: unknown assignment or paragraph (not_found), no draft yet (invalid_state) or unchanged text (invalid_arguments).',
+  tool('drafts.edit', false, 'Replace the text of one paragraph of the latest version directly, creating a new version; new or altered sentences are authored by the agent. Second Draft classifies the edit under ' + RULE + ': ' + KIND_RULE + ' Refused: unknown assignment or paragraph (not_found), no draft yet (invalid_state) or unchanged text (invalid_arguments).',
     writeIn({assignment_id: ID, paragraph_id: ID, text: LINE}), WRITE_OUT),
   tool('messages.send', false, 'Send a message to the instructor in a course thread (a course ID from policies.get), optionally replying to a message ID from messages.list. Unknown course or message: not_found.',
     writeIn({course_id: ID, text: TEXT, in_reply_to: ID}, ['in_reply_to']), WRITE_OUT),

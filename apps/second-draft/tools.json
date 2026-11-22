@@ -1749,7 +1749,7 @@
   },
   {
     "name": "second-draft.suggestions.create",
-    "description": "Suggest a replacement for words quoted exactly from one paragraph of the latest version (paragraph IDs from drafts.get). It changes the draft only if the student accepts it, and becomes stale if the quote no longer appears exactly once. Second Draft classifies it as language or content under second-draft-edit-kind/1. Refused: unknown assignment or paragraph (not_found), no draft yet (invalid_state), a quote that does not appear exactly once (invalid_quote), or a replacement that changes nothing (invalid_arguments).",
+    "description": "Suggest a replacement for words quoted exactly from one paragraph of the latest version (paragraph IDs from drafts.get). It changes the draft only if the student accepts it, and becomes stale if the quote no longer appears exactly once. Second Draft classifies it under second-draft-edit-kind/1: A change is language when exactly one sentence changes, no sentence is added or removed, and at most 30% of that sentence's words change; anything else is content (splitting a sentence in two is content, a semicolon is not). Refused: unknown assignment or paragraph (not_found), no draft yet (invalid_state), a quote that does not appear exactly once (invalid_quote), or a replacement that changes nothing (invalid_arguments).",
     "read_only": false,
     "scope": "second-draft.suggestions.create",
     "resource_target": "current account",
@@ -1851,7 +1851,7 @@
   },
   {
     "name": "second-draft.drafts.edit",
-    "description": "Replace the text of one paragraph of the latest version directly, creating a new version; new or altered sentences are authored by the agent. Second Draft classifies the edit as language or content under second-draft-edit-kind/1. Refused: unknown assignment or paragraph (not_found), no draft yet (invalid_state) or unchanged text (invalid_arguments).",
+    "description": "Replace the text of one paragraph of the latest version directly, creating a new version; new or altered sentences are authored by the agent. Second Draft classifies the edit under second-draft-edit-kind/1: A change is language when exactly one sentence changes, no sentence is added or removed, and at most 30% of that sentence's words change; anything else is content (splitting a sentence in two is content, a semicolon is not). Refused: unknown assignment or paragraph (not_found), no draft yet (invalid_state) or unchanged text (invalid_arguments).",
     "read_only": false,
     "scope": "second-draft.drafts.edit",
     "resource_target": "current account",

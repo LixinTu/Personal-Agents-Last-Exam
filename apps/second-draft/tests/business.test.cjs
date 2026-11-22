@@ -6,3 +6,4 @@ require('./events.cjs');
 require('./rules.cjs');
 require('./renderer.cjs');
 require('./fixtures.cjs');
+require('./scenarios.cjs');
