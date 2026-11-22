@@ -134,3 +134,17 @@ test('reset restores the loaded data and clock; the evaluator-only records never
   assert.deepEqual([hash(restored.data), restored.virtual_now], [hash(loaded.data), loaded.virtual_now]);
   assert.ok(restored.epoch > current.snapshot.epoch);
 });
+
+test('both full fixtures load as bundles with strict provenance and counts', async () => {
+  for (const id of ['priya', 'marcus']) {
+    const {infra, agent} = await session('fixture-' + id);
+    const read = f => JSON.parse(fs.readFileSync(path.join(__dirname, '../fixtures/students', id, f), 'utf8'));
+    const v0 = (await infra.call('env.snapshot')).version;
+    const r = await infra.call('env.load_seed', {expected_version: v0, request_id: 'load-' + id, data: read('seed.json'), binding: read('binding.json'),
+      bundle: {dataset: read('dataset.json'), catalog: read('catalog.json'), blobs: {}}, virtual_now: T('09:00')});
+    assert.equal(r.status, 'ready', id + ': ' + (r.message || ''));
+    assert.equal(r.quality.automated_pass, true);
+    assert.equal(r.quality.counts.records, read('dataset.json').expected_counts.records);
+    assert.equal((await agent.call('second-draft.assignments.list', {})).assignments.length, 3);
+  }
+});

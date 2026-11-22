@@ -5,3 +5,4 @@ require('./workflows.cjs');
 require('./events.cjs');
 require('./rules.cjs');
 require('./renderer.cjs');
+require('./fixtures.cjs');
