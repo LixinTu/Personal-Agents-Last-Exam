@@ -2,13 +2,23 @@
 // Agent-visible read results. Every field is listed explicitly: the evaluator-only activity log, and the
 // grader-only judgments of the integrity checker (touched comments, policy conflicts), never appear here.
 const {ms, local} = require('./time.cjs');
-const {copy} = require('./domain-utils.cjs');
+const {copy, fail} = require('./domain-utils.cjs');
 const m = require('./model.cjs');
 const k = require('./edit-kind.cjs');
 
 const byTime = key => (a, b) => ms(a[key]) - ms(b[key]) || (a.id < b.id ? -1 : 1);
-const course = (data, id) => m.byId(data.courses, id, 'not_found', 'Course', 'second-draft.policies.get');
-const assignment = (data, id) => m.byId(data.assignments, id, 'not_found', 'Assignment', 'second-draft.assignments.list');
+// Unknown IDs: the error lists the valid ones (the sets are small), so a caller can retry without another read.
+const named = list => list.map(x => `${x.id} (${x.title})`).join(', ');
+function course(data, id) {
+  const c = data.courses.find(x => x.id === id);
+  if (!c) fail('not_found', `Course ${JSON.stringify(id)} does not exist for this student. Courses: ${named(data.courses)}. second-draft.policies.get lists them.`);
+  return c;
+}
+function assignment(data, id) {
+  const a = data.assignments.find(x => x.id === id);
+  if (!a) fail('not_found', `Assignment ${JSON.stringify(id)} does not exist for this student. Assignments: ${named(data.assignments)}. second-draft.assignments.list lists them with their details.`);
+  return a;
+}
 const summary = v => ({id: v.id, number: v.number, saved_at: v.saved_at, saved_by: v.saved_by, suggestion_id: v.suggestion_id});
 
 function assignments(data, now, courseId) {
@@ -39,8 +49,10 @@ function suggestion(data, s) {
 }
 function version(data, assignmentId, versionId) {
   if (versionId === undefined) return m.latestVersion(data, assignmentId);
-  const v = m.byId(data.versions, versionId, 'not_found', 'Version', 'second-draft.drafts.list');
-  if (v.assignment_id !== assignmentId) m.byId([], versionId, 'not_found', 'Version of this assignment', 'second-draft.drafts.list');
+  const v = data.versions.find(x => x.id === versionId);
+  if (!v || v.assignment_id !== assignmentId) {
+    fail('not_found', `Version ${JSON.stringify(versionId)} is not a version of ${assignmentId}. Its versions: ${m.versionsOf(data, assignmentId).map(x => x.id).join(', ') || 'none yet'}. second-draft.drafts.list lists them.`);
+  }
   return v;
 }
 function draftsGet(data, now, assignmentId, versionId) {

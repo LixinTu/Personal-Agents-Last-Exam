@@ -32,7 +32,15 @@ const READS = {
   'preferences.get': (data, now) => v.preferences(data, now)
 };
 
-const comment = (data, id) => m.byId(data.comments, id, 'not_found', 'Comment', 'second-draft.comments.list');
+function comment(data, id) {
+  const c = data.comments.find(x => x.id === id);
+  if (!c) {
+    const open = data.assignments.map(a => [a.id, data.comments.filter(x => x.assignment_id === a.id && x.status === 'open').map(x => x.id)]).filter(([, ids]) => ids.length);
+    fail('not_found', `Comment ${JSON.stringify(id)} does not exist for this student. ` + (open.length ? `Open comments: ${open.map(([a, ids]) => `${a}: ${ids.join(', ')}`).join('; ')}. ` : '') +
+      'second-draft.comments.list lists all comments of one assignment.');
+  }
+  return c;
+}
 function latestParagraph(data, assignmentId, paragraphId) {
   const latest = m.latestVersion(data, assignmentId);
   if (!latest) fail('invalid_state', 'This assignment has no draft yet.');
@@ -102,7 +110,8 @@ const WRITES = {
   'messages.send'(ctx, data, args) {
     const c = v.course(data, args.course_id);
     if (args.in_reply_to !== undefined && data.messages.find(x => x.id === args.in_reply_to)?.course_id !== c.id) {
-      fail('not_found', 'Message ' + JSON.stringify(args.in_reply_to) + ' is not in this course thread; second-draft.messages.list lists them.');
+      const ids = data.messages.filter(x => x.course_id === c.id).map(x => x.id);
+      fail('not_found', 'Message ' + JSON.stringify(args.in_reply_to) + ' is not in the ' + c.id + ' thread. Its messages: ' + (ids.join(', ') || 'none yet') + '. second-draft.messages.list lists them.');
     }
     const msg = {id: m.nextId(data, 'msg'), course_id: c.id, author: 'agent', in_reply_to: args.in_reply_to ?? null, text: args.text, at: ctx.virtual_now};
     data.messages.push(msg);

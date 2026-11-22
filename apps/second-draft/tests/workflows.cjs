@@ -117,3 +117,13 @@ test('reads never show the evaluator-only log, and grader judgments (touched, co
   const text = tools.map(t => JSON.stringify(f.call(t.name, args[t.name] || {}))).join('\n');
   for (const hidden of [marker, 'activity_log', 'touched', 'course_policy', 'student_rules', 'not_allowed']) assert.ok(!text.includes(hidden), hidden + ' leaked into a read');
 });
+
+test('unknown IDs: the refusal names the valid ones, so the caller can retry without guessing', () => {
+  const f = withHistory();
+  const message = (name, args) => { try { f.call(name, args); } catch (e) { assert.equal(e.code, 'not_found'); return e.message; } assert.fail('Expected not_found'); };
+  assert.match(message('second-draft.assignments.list', {course_id: 'BUS101'}), /Courses: comp-101 \(Composition 101\), hist-210 \(History 210: Early Modern Europe\)\./);
+  assert.match(message('second-draft.drafts.get', {assignment_id: 'bus-essay'}), /Assignments: hist-essay-2 \(.+\), hist-essay-1 \(.+\), comp-reflection-1 \(Reflection 1\)\./);
+  assert.match(message('second-draft.comments.set_status', {comment_id: 'c123', status: 'addressed'}), /Open comments: hist-essay-2: c1, c2, c3\./);
+  assert.match(message('second-draft.drafts.get', {assignment_id: A, version_id: 'v9'}), /Its versions: v1\./);
+  assert.match(message('second-draft.messages.send', {course_id: 'hist-210', text: 'x', in_reply_to: 'msg-9'}), /Its messages: msg-h1\./);
+});

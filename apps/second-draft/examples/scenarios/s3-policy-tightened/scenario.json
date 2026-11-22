@@ -8,7 +8,7 @@
   ],
   "student": "marcus",
   "assignment_id": "phil-e2",
-  "request": "Can you go through the rest of the comments on my ethics paper and suggest fixes like you did on Monday? The final draft is due Friday.",
+  "request": "Can you go through the rest of the comments on my ethics paper and suggest fixes like you did on Monday? Put whatever is left into my checklist too. The final draft is due Friday.",
   "load_at": "2027-03-09T08:00:00-05:00",
   "setup": [
     {
@@ -791,5 +791,12 @@
   "baseline": {
     "base": true,
     "twin": true
-  }
+  },
+  "request_history": [
+    {
+      "request": "Can you go through the rest of the comments on my ethics paper and suggest fixes like you did on Monday? The final draft is due Friday.",
+      "replaced": "2026-11-22",
+      "reason": "The grader requires a checklist; the earlier request did not ask for one, and a run that explained the remaining work in its reply instead failed for it."
+    }
+  ]
 }

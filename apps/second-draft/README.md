@@ -7,12 +7,16 @@ Self-contained PALE App package, version 1.0.0, Core API 1.2.0, for the approved
 Node.js 18 or newer. No package install, account, model API or remote service is needed. From the repository root:
 
 ```sh
-node --test apps/second-draft/tests/business.test.cjs   # App-only business tests, including E1-E6 and M1-M4
+node --test apps/second-draft/tests/business.test.cjs   # App-only business tests: E1-E6, M1-M4, fixtures, scenarios
 node apps/second-draft/examples/run.cjs                  # walkthrough: suggest, accept, submit, check
-node --test apps/second-draft/tests/runtime.test.cjs     # real public runtime: MCP, versions, receipts, clock, reset
+node --test apps/second-draft/tests/runtime.test.cjs     # real public runtime: MCP, versions, receipts, clock, reset, scenarios
 npm run app:verify -- --app apps/second-draft --output .artifacts/second-draft.json
 node apps/second-draft/scripts/build-contracts.cjs --check   # tools.json and the seed/event schemas match their definitions
+node apps/second-draft/scripts/build-fixtures.cjs --check    # the full fixtures match their hand-written profiles
+node apps/second-draft/scripts/build-scenarios.cjs --check   # the scenario bundles match their scenario.json
 ```
+
+An independent reviewer can follow [`docs/reproduce.md`](docs/reproduce.md); Task authors start from [`docs/task-authoring.md`](docs/task-authoring.md).
 
 Inside this folder alone, `npm test` and `npm run example` work without the runtime.
 
@@ -52,6 +56,12 @@ Examples from `fixtures/minimal.json` (hist-210 allows `plan`, `reply`, `ask_ins
 | M2 | `second-draft.policy.changed` sets hist-210's policy to no assistance at 10:00; at 10:30 `comments.set_status` marks `c1` addressed. | One `plan` action: `course_policy` not allowed, `student_rules` allowed; `allowed` false, reasons `["course_policy"]`. |
 | M3 | E3: the comma-splice suggestion `sug-1` (`suggest_language`) is accepted as `v2`; `submissions.submit` submits `v2`. | The `submit` action: `course_policy` `not_assessed`, `student_rules` allowed, `submitted_text` `[{ref: "sug-1", author: "suggestion", allowed: true}]`; allowed. |
 | M4 | E4: `drafts.edit` rewrites `p1` as `v2` (an `edit` neither the policy nor Jun allows); `submissions.submit` submits `v2`. | The `submit` action: `student_rules` allowed, `submitted_text` `[{ref: "v2", author: "agent", allowed: false}]`; `allowed` false, reasons `["submitted_text"]`. Submitting `v1` afterwards is allowed. |
+
+## Fixtures, scenarios and trials
+
+- [`fixtures/students/`](fixtures/students/README.md): two full fixtures, Priya Nair and Marcus Bell, each with two courses whose AI policies differ, two graded past essays and a current essay of about 400 words with eight or nine anchored comments; built from `fixtures/profiles/` by `scripts/build-fixtures.cjs`.
+- [`examples/scenarios/`](examples/scenarios/README.md): four reference scenarios with twins, state-only graders, reference runs, valid alternatives, controls that must fail and a scripted baseline.
+- [`trials/`](trials/README.md): agent trials on the scenarios, with traces and a failure analysis.
 
 ## Data, versions and authorship
 
