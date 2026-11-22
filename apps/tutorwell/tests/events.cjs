@@ -101,3 +101,19 @@ test('rules.changed: one of the five settings, within its range, to a new value;
   refused(f, () => book(f, 's3', WRITING), 'weekly_cap');
   assert.deepEqual(f.call(T + 'profile.get').this_week, {week_start: '2027-03-08', count: 1, weekly_cap: 1});
 });
+
+test('rules.changed cannot share its time with a recorded cancellation or attendance, which it would re-judge', () => {
+  const f = fixture();
+  book(f, 's1', MATH);
+  f.advance(at('03-08', '20:00'));
+  f.call(T + 'appointments.cancel', {appointment_id: 'apt-1'});   // in time: cutoff Tue 04:00
+  // With a 24-hour cutoff the same cancellation would be late; dated at the cancellation, the change is refused.
+  refused(f, () => f.event(ev('rules.changed', {setting: 'cancel_cutoff_hours', value: 24}, at('03-08', '20:00'))), 'invalid_value');
+  f.event(ev('rules.changed', {setting: 'cancel_cutoff_hours', value: 24}, '2027-03-08T20:00:01-05:00'));
+  assert.equal(f.call(T + 'appointments.list').appointments.find(a => a.id === 'apt-1').status, 'cancelled');
+  const g = fixture();
+  book(g, 's1', MATH);
+  g.event(ev('appointment.attended', {appointment_id: 'apt-1', outcome: 'no_show'}, at('03-09', '17:00')));
+  refused(g, () => g.event(ev('rules.changed', {setting: 'no_show_limit', value: 3}, at('03-09', '17:00'))), 'invalid_value');
+  assert.equal(g.call(T + 'profile.get').suspension.cause_appointment_id, 'apt-1', 'the suspension recorded under limit 2 stands');
+});

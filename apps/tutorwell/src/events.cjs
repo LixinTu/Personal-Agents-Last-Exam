@@ -66,6 +66,10 @@ const HANDLERS = {
     if (p.value < low || p.value > high) bad(`${p.setting} must be between ${low} and ${high}.`);
     const current = r.settingsAt(data, at);
     if (current[p.setting] === p.value) bad(`${p.setting} is already ${p.value}.`);
+    // A result is judged by the settings in force when it is recorded. A change dated at the very time of a recorded
+    // cancellation or attendance would re-judge it, so it must come later.
+    const same = data.appointments.find(a => (a.status === 'cancelled' || a.status === 'late_cancel') && ms(a.cancelled_at) === ms(at) || a.outcome && ms(a.outcome.recorded_at) === ms(at));
+    if (same) bad(`Appointment ${same.id} has a result recorded at this time; date the settings change later.`);
     const entry = {id: m.nextId(data, 'set'), at, ...current, [p.setting]: p.value};
     data.settings.push(entry);
     return entry.id;
