@@ -36,9 +36,6 @@ function checkWork(data, intake, slot) {
   if (service.requires_draft && intake.draft_ref === null) fail('draft_required', `${service.title} sessions need a draft reference (draft_ref).`);
 }
 const at = (data, value) => v.when(data, value);
-function appointmentFor(data, id) {
-  return v.find(data.appointments, id, 'Appointment', 'appointments.list');
-}
 function bookable(data, appointment, now, action) {
   if (appointment.status !== 'booked') fail('invalid_state', `Appointment ${appointment.id} is ${appointment.status}; it cannot be ${action}.`);
   const start = r.slotOf(data, appointment).start;
@@ -65,7 +62,7 @@ const WRITES = {
       result: {appointment_status: 'booked', cancellation_cutoff: at(data, r.cutoff(data, appointment, now))}};
   },
   'appointments.update_intake'(ctx, data, args) {
-    const now = ctx.virtual_now, appointment = appointmentFor(data, args.appointment_id);
+    const now = ctx.virtual_now, appointment = v.appointmentFor(data, args.appointment_id, now);
     const given = INTAKE_KEYS.filter(k => Object.hasOwn(args.intake, k));
     if (!given.length) fail('invalid_arguments', 'Give at least one intake field to change.');
     bookable(data, appointment, now, 'changed');
@@ -77,7 +74,7 @@ const WRITES = {
     return {object_id: appointment.id, appointment_id: appointment.id, details: {changed: given, before, intake: copy(intake)}};
   },
   'appointments.cancel'(ctx, data, args) {
-    const now = ctx.virtual_now, appointment = appointmentFor(data, args.appointment_id);
+    const now = ctx.virtual_now, appointment = v.appointmentFor(data, args.appointment_id, now);
     bookable(data, appointment, now, 'cancelled');
     const cutoff = r.cutoff(data, appointment, now), late = ms(now) > cutoff;
     Object.assign(appointment, {status: late ? 'late_cancel' : 'cancelled', cancelled_at: now});
@@ -86,7 +83,7 @@ const WRITES = {
       result: {appointment_status: appointment.status, suspension: v.period(data, started)}};
   },
   'followups.set_status'(ctx, data, args) {
-    const f = v.find(data.followups, args.followup_id, 'Follow-up', 'reports.list');
+    const f = v.followupFor(data, args.followup_id);
     if (f.status === args.status) fail('invalid_state', `Follow-up ${f.id} is already ${f.status}.`);
     const before = f.status;
     Object.assign(f, args.status === 'done' ? {status: 'done', done_at: ctx.virtual_now, done_by: 'agent'} : {status: 'open', done_at: null, done_by: null});

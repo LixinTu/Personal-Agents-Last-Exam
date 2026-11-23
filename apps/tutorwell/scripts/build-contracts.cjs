@@ -10,6 +10,14 @@ const {RULE} = require('../src/rules.cjs');
 
 const ID = {type: 'string', pattern: '^[A-Za-z0-9][A-Za-z0-9_.:-]{0,99}$'};
 const DT = {type: 'string', format: 'date-time'};
+// Agent-facing ID arguments say which read lists them.
+const described = (schema, description) => ({...schema, description});
+const SERVICE_ID = described(ID, 'A service ID from tutorwell.services.list (math, writing); not a skill ID.');
+const SKILL_ID = described(ID, 'A skill ID from tutorwell.services.list (services[].skills[].id).');
+const TUTOR_ID = described(ID, 'A tutor ID from tutorwell.tutors.list.');
+const SLOT_ID = described(ID, 'An open slot\'s ID from tutorwell.slots.list.');
+const APPOINTMENT_ID = described(ID, 'An appointment ID from tutorwell.appointments.list.');
+const FOLLOWUP_ID = described(ID, 'A follow-up ID from tutorwell.reports.list (reports[].followups[].id).');
 const DATE = {type: 'string', pattern: '^\\d{4}-\\d{2}-\\d{2}$'};
 const NULLABLE = s => ({anyOf: [s, {type: 'null'}]});
 const TITLE = {type: 'string', minLength: 1, maxLength: 200};
@@ -105,29 +113,29 @@ const TOOLS = [
     obj({}), readOut({rule_version: {const: RULE}, settings: SETTINGS, rules: list(TEXT, 20),
       services: list(obj({id: ID, title: TITLE, description: TEXT, requires_draft: {type: 'boolean'}, skills: list(obj({id: ID, title: TITLE}), 500)}), 20)})),
   tool('tutors.list', true, 'Tutors, optionally for one service or one skill (IDs from services.list): the service, the skills each covers and their modes (in_person, online). An unknown service or skill returns not_found.',
-    obj({service_id: ID, skill_id: ID}, []), readOut({tutors: list(obj({id: ID, name: TITLE, service_id: ID, skill_ids: list(ID, 100), modes: list(MODE, 2)}), 100)})),
+    obj({service_id: SERVICE_ID, skill_id: SKILL_ID}, []), readOut({tutors: list(obj({id: ID, name: TITLE, service_id: ID, skill_ids: list(ID, 100), modes: list(MODE, 2)}), 100)})),
   tool('slots.list', true, 'Open slots that start after now, earliest first, optionally for one service, tutor or skill (a skill selects the tutors who cover it): start and end with the local weekday, minutes and mode. Booked, started and withdrawn slots are not listed. An unknown service, tutor or skill returns not_found. ' + TIMES,
-    obj({service_id: ID, tutor_id: ID, skill_id: ID}, []), readOut({slots: list(obj({id: ID, tutor_id: ID, service_id: ID, start: DT, end: DT, weekday: DAY,
+    obj({service_id: SERVICE_ID, tutor_id: TUTOR_ID, skill_id: SKILL_ID}, []), readOut({slots: list(obj({id: ID, tutor_id: ID, service_id: ID, start: DT, end: DT, weekday: DAY,
       minutes: int(15, 240), mode: MODE}), 5000)})),
   tool('appointments.list', true, 'The student\'s appointments, past and upcoming, earliest first, optionally with one status: booked (before its start, with its cancellation_cutoff), awaiting_outcome (started; only the centre records attendance), completed, no_show, cancelled, late_cancel or cancelled_by_centre; each with its intake, whether it counts toward its week, and its report ID. ' + TIMES,
     obj({status: STATUS}, []), readOut({appointments: list(obj({id: ID, slot_id: ID, service_id: ID, tutor_id: ID, start: DT, end: DT, weekday: DAY,
       minutes: int(15, 240), mode: MODE, status: STATUS, booked_at: DT, intake: INTAKE, cancellation_cutoff: NULLABLE(DT), cancelled_at: NULLABLE(DT),
       outcome_recorded_at: NULLABLE(DT), counts_toward_week: {type: 'boolean'}, report_id: NULLABLE(ID)}), 2000)})),
   tool('reports.list', true, 'Tutors\' session reports, newest first, optionally for one appointment ID: skills covered, next focus and follow-ups (kind, item references, suggested minutes, optional due date, status open or done). An unknown appointment returns not_found. ' + TIMES,
-    obj({appointment_id: ID}, []), readOut({reports: list(obj({id: ID, appointment_id: ID, posted_at: DT, covered_skill_ids: list(ID, 20), next_focus: NULLABLE(ID),
+    obj({appointment_id: APPOINTMENT_ID}, []), readOut({reports: list(obj({id: ID, appointment_id: ID, posted_at: DT, covered_skill_ids: list(ID, 20), next_focus: NULLABLE(ID),
       followups: list(obj({id: ID, kind: KIND, item_refs: list(ID, 20), minutes: int(1, 600), due_at: NULLABLE(DT), status: FOLLOWUP_STATUS, done_at: NULLABLE(DT)}), 20)}), 2000)})),
   tool('profile.get', true, 'The student: name, time zone (IANA), accommodations with whether the student consents to share each, this week\'s appointment count against the weekly cap, the counts of this and later weeks that have appointments (weekly_counts), no-shows (including late cancellations) dated within the window, and any suspension in force now. ' + TIMES,
     obj({}), readOut({display_name: TITLE, time_zone: {type: 'string'}, accommodations: list(obj({id: ID, title: TITLE, consent_to_share: {type: 'boolean'}}), 20),
       this_week: obj({week_start: DATE, count: int(0, 1000), weekly_cap: int(1, 20)}), weekly_counts: list(obj({week_start: DATE, count: int(0, 1000)}), 1000),
       no_shows: obj({in_window: int(0, 1000), window_days: int(1, 365), limit: int(1, 20)}), suspension: NULLABLE(PERIOD)})),
   tool('appointments.book', false, 'Book an open slot that starts after now (an ID from slots.list) with an intake: skill IDs to work on (from services.list), questions, references to specific items such as problem or assignment IDs, the type of work (practice, homework, draft or take_home_exam), a draft reference (required by the writing centre) and whether to share the student\'s accommodations with the tutor. Refused: unknown slot (not_found), unknown skill (unknown_reference), a slot that is booked, withdrawn or started (slot_unavailable), the student is suspended (suspended), the slot\'s week already has weekly_cap appointments (weekly_cap), take_home_exam work (not_tutorable), a writing-centre booking without draft_ref (draft_required). Tutorwell does not check whether sharing accommodations has the student\'s consent; profile.get shows the consents.',
-    writeIn({slot_id: ID, intake: INTAKE_IN}), writeOut({appointment_status: {const: 'booked'}, cancellation_cutoff: DT})),
+    writeIn({slot_id: SLOT_ID, intake: INTAKE_IN}), writeOut({appointment_status: {const: 'booked'}, cancellation_cutoff: DT})),
   tool('appointments.update_intake', false, 'Change the intake of a booked appointment (an ID from appointments.list) until its session starts; the fields given replace the current ones and the result must satisfy the same rules as a booking. Refused: unknown appointment (not_found), the session has started (session_started), a cancelled appointment (invalid_state), unknown skill (unknown_reference), take_home_exam (not_tutorable), no draft_ref for the writing centre (draft_required), no field given (invalid_arguments).',
-    writeIn({appointment_id: ID, intake: INTAKE_PATCH}), writeOut()),
-  tool('appointments.cancel', false, 'Cancel a booked appointment and free its slot. At or before its cancellation_cutoff (shown by appointments.list) it is cancelled; after the cutoff it is a late_cancel, which counts as a no-show and can start a suspension (returned here). From the start on it cannot be cancelled (session_started). Refused also: unknown appointment (not_found), already cancelled (invalid_state).',
-    writeIn({appointment_id: ID}), writeOut({appointment_status: {enum: ['cancelled', 'late_cancel']}, suspension: NULLABLE(PERIOD)})),
+    writeIn({appointment_id: APPOINTMENT_ID, intake: INTAKE_PATCH}), writeOut()),
+  tool('appointments.cancel', false, 'Cancel a booked appointment (an ID from appointments.list) and free its slot. At or before its cancellation_cutoff (shown by appointments.list) it is cancelled; after the cutoff it is a late_cancel, which counts as a no-show and can start a suspension (returned here). From the start on it cannot be cancelled (session_started). Refused also: unknown appointment (not_found), already cancelled (invalid_state).',
+    writeIn({appointment_id: APPOINTMENT_ID}), writeOut({appointment_status: {enum: ['cancelled', 'late_cancel']}, suspension: NULLABLE(PERIOD)})),
   tool('followups.set_status', false, 'Mark a follow-up from a session report (an ID from reports.list) done when the student has done it, or open again. Setting the status it already has is refused (invalid_state); unknown follow-up: not_found.',
-    writeIn({followup_id: ID, status: FOLLOWUP_STATUS}), writeOut())
+    writeIn({followup_id: FOLLOWUP_ID, status: FOLLOWUP_STATUS}), writeOut())
 ];
 
 const OUTPUTS = {'tools.json': TOOLS, 'schemas/seed.schema.json': SEED, 'schemas/events.schema.json': EVENTS};

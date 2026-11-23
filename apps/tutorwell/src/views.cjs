@@ -11,8 +11,19 @@ function find(list, id, what, lister, label = x => x.id) {
   if (!item) fail('not_found', `${what} ${JSON.stringify(id)} does not exist. Known: ${list.map(label).join(', ') || 'none'}. tutorwell.${lister} lists them.`);
   return item;
 }
-const service = (data, id) => find(data.services, id, 'Service', 'services.list', s => `${s.id} (${s.title})`);
-const skill = (data, id) => find(data.skills, id, 'Skill', 'services.list', s => `${s.id} (${s.title})`);
+// A skill ID given as a service, or a service ID given as a skill, is named as what it is.
+function service(data, id) {
+  const k = data.skills.find(x => x.id === id);
+  if (k && !data.services.some(s => s.id === id)) {
+    fail('not_found', `Service ${JSON.stringify(id)} does not exist: ${id} is a skill (${k.title}); filter by it with skill_id. Services: ${data.services.map(s => `${s.id} (${s.title})`).join(', ')}.`);
+  }
+  return find(data.services, id, 'Service', 'services.list', s => `${s.id} (${s.title})`);
+}
+function skill(data, id) {
+  const s = data.services.find(x => x.id === id);
+  if (s && !data.skills.some(k => k.id === id)) fail('not_found', `Skill ${JSON.stringify(id)} does not exist: ${id} is a service (${s.title}); filter by it with service_id. tutorwell.services.list lists the skills of each service.`);
+  return find(data.skills, id, 'Skill', 'services.list', k => `${k.id} (${k.title})`);
+}
 const tutor = (data, id) => find(data.tutors, id, 'Tutor', 'tutors.list', t => `${t.id} (${t.name})`);
 const tutorOf = (data, slot) => data.tutors.find(t => t.id === slot.tutor_id);
 const zone = data => data.student.time_zone;
@@ -26,6 +37,24 @@ function slot(data, id, now) {
     fail('not_found', `Slot ${JSON.stringify(id)} does not exist. Open slots: ${open.join(', ') || 'none'}. tutorwell.slots.list lists them with their times.`);
   }
   return s;
+}
+// An unknown appointment: the error lists the booked ones (for a change or a cancellation) or those with a report,
+// each with its start and tutor.
+function appointmentFor(data, id, now, which = 'booked') {
+  const a = data.appointments.find(x => x.id === id);
+  if (a) return a;
+  const pick = which === 'booked' ? x => r.statusOf(data, x, now) === 'booked' : x => data.reports.some(p => p.appointment_id === x.id);
+  const label = x => { const s = r.slotOf(data, x); return `${x.id} (${local(s.start, zone(data)).weekday} ${when(data, s.start)}, ${tutorOf(data, s).name})`; };
+  const shown = data.appointments.filter(pick).sort((x, y) => ms(r.slotOf(data, x).start) - ms(r.slotOf(data, y).start)).map(label);
+  fail('not_found', `Appointment ${JSON.stringify(id)} does not exist. ${which === 'booked' ? 'Booked appointments' : 'Appointments with a report'}: ${shown.join(', ') || 'none'}. tutorwell.appointments.list lists them all with their times and status.`);
+}
+// An unknown follow-up: the error lists the open ones with their kind, items and due time, then the done ones.
+function followupFor(data, id) {
+  const f = data.followups.find(x => x.id === id);
+  if (f) return f;
+  const label = x => `${x.id} (${x.kind} ${x.item_refs.join(' ') || 'no item'}${x.due_at ? ', due ' + when(data, x.due_at) : ''})`;
+  const open = data.followups.filter(x => x.status === 'open').map(label), done = data.followups.filter(x => x.status === 'done').map(x => x.id);
+  fail('not_found', `Follow-up ${JSON.stringify(id)} does not exist. Open: ${open.join(', ') || 'none'}. Done: ${done.join(', ') || 'none'}. tutorwell.reports.list lists them with their reports.`);
 }
 const isOpen = (data, s, now) => s.withdrawn_at === null && ms(s.start) > ms(now) && !data.appointments.some(a => a.slot_id === s.id && a.status === 'booked');
 
@@ -76,7 +105,7 @@ function appointmentsList(data, now, a) {
   return {as_of: when(data, now), appointments: all.map(x => appointment(data, now, x)).filter(x => a.status === undefined || x.status === a.status)};
 }
 function reportsList(data, now, a) {
-  if (a.appointment_id !== undefined) find(data.appointments, a.appointment_id, 'Appointment', 'appointments.list');
+  if (a.appointment_id !== undefined) appointmentFor(data, a.appointment_id, now, 'reported');
   const reports = data.reports.filter(p => a.appointment_id === undefined || p.appointment_id === a.appointment_id)
     .sort((x, y) => ms(y.posted_at) - ms(x.posted_at) || (x.id < y.id ? 1 : -1));
   return {as_of: when(data, now), reports: reports.map(p => ({id: p.id, appointment_id: p.appointment_id, posted_at: when(data, p.posted_at),
@@ -102,4 +131,4 @@ function profileGet(data, now) {
     suspension: period(data, r.suspensionAt(data, now))};
 }
 
-module.exports = {slot, servicesList, tutorsList, slotsList, appointmentsList, reportsList, profileGet, appointment, period, find, skill, when, isOpen, tutorOf};
+module.exports = {slot, servicesList, tutorsList, slotsList, appointmentsList, reportsList, profileGet, appointment, appointmentFor, followupFor, period, find, skill, when, isOpen, tutorOf};

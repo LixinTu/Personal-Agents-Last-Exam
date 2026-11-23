@@ -6,3 +6,5 @@ require('./events.cjs');
 require('./rules.cjs');
 require('./renderer.cjs');
 require('./seeds-validation.cjs');
+require('./fixtures.cjs');
+require('./scenarios.cjs');

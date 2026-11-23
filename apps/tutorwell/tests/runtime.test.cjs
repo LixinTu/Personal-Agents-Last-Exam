@@ -147,3 +147,35 @@ test('reset restores the loaded data and clock; the evaluator-only records never
   assert.deepEqual([hash(restored.data), restored.virtual_now], [hash(loaded.data), loaded.virtual_now]);
   assert.ok(restored.epoch > current.snapshot.epoch);
 });
+
+test('both full fixtures load as bundles with strict provenance and counts', async () => {
+  for (const id of ['daniel', 'maya']) {
+    const {infra, agent} = await session('fixture-' + id);
+    const read = f => JSON.parse(fs.readFileSync(path.join(__dirname, '../fixtures/students', id, f), 'utf8'));
+    const v0 = (await infra.call('env.snapshot')).version;
+    const r = await infra.call('env.load_seed', {expected_version: v0, request_id: 'load-' + id, data: read('seed.json'), binding: read('binding.json'),
+      bundle: {dataset: read('dataset.json'), catalog: read('catalog.json'), blobs: {}}, virtual_now: '2027-03-01T09:00:00-05:00'});
+    assert.equal(r.status, 'ready', id + ': ' + (r.message || ''));
+    assert.equal(r.quality.automated_pass, true);
+    assert.equal(r.quality.counts.records, read('dataset.json').expected_counts.records);
+    assert.equal((await agent.call(T + 'appointments.list', {})).appointments.length, 12);
+    assert.equal((await agent.call(T + 'profile.get', {})).as_of, '2027-03-01T09:00:00-05:00');
+  }
+});
+
+test('the four reference scenarios play over MCP: each reference passes its member and fails the other', async () => {
+  const {play} = require('../examples/scenarios/play.cjs');
+  const {scenarios} = require('../scripts/build-scenarios.cjs');
+  const out = fs.mkdtempSync(path.join(require('node:os').tmpdir(), 'tutorwell-runtime-'));
+  try {
+    for (const s of scenarios()) {
+      for (const variant of ['base', 'twin']) {
+        const r = await play(s.id, variant, 'reference', path.join(out, s.id + '-' + variant));
+        assert.ok(r.grade.pass, `${s.id}/${variant}: ${JSON.stringify(r.grade.checks.filter(c => !c.pass))}`);
+        assert.ok(r.steps.every(([, status]) => ['ready', 'committed', 'ok'].includes(status)), `${s.id}/${variant} steps: ${JSON.stringify(r.steps)}`);
+      }
+      const crossed = await play(s.id, 'twin', 'control-1', path.join(out, s.id + '-cross'));
+      assert.equal(crossed.grade.pass, false, `${s.id}: the twin's first control (the base's decision) fails`);
+    }
+  } finally { fs.rmSync(out, {recursive: true, force: true}); }
+});

@@ -174,11 +174,13 @@
       "properties": {
         "service_id": {
           "type": "string",
-          "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]{0,99}$"
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]{0,99}$",
+          "description": "A service ID from tutorwell.services.list (math, writing); not a skill ID."
         },
         "skill_id": {
           "type": "string",
-          "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]{0,99}$"
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]{0,99}$",
+          "description": "A skill ID from tutorwell.services.list (services[].skills[].id)."
         }
       },
       "required": [],
@@ -285,15 +287,18 @@
       "properties": {
         "service_id": {
           "type": "string",
-          "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]{0,99}$"
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]{0,99}$",
+          "description": "A service ID from tutorwell.services.list (math, writing); not a skill ID."
         },
         "tutor_id": {
           "type": "string",
-          "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]{0,99}$"
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]{0,99}$",
+          "description": "A tutor ID from tutorwell.tutors.list."
         },
         "skill_id": {
           "type": "string",
-          "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]{0,99}$"
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]{0,99}$",
+          "description": "A skill ID from tutorwell.services.list (services[].skills[].id)."
         }
       },
       "required": [],
@@ -681,7 +686,8 @@
       "properties": {
         "appointment_id": {
           "type": "string",
-          "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]{0,99}$"
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]{0,99}$",
+          "description": "An appointment ID from tutorwell.appointments.list."
         }
       },
       "required": [],
@@ -1067,7 +1073,8 @@
       "properties": {
         "slot_id": {
           "type": "string",
-          "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]{0,99}$"
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]{0,99}$",
+          "description": "An open slot's ID from tutorwell.slots.list."
         },
         "intake": {
           "type": "object",
@@ -1222,7 +1229,8 @@
       "properties": {
         "appointment_id": {
           "type": "string",
-          "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]{0,99}$"
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]{0,99}$",
+          "description": "An appointment ID from tutorwell.appointments.list."
         },
         "intake": {
           "type": "object",
@@ -1355,7 +1363,7 @@
   },
   {
     "name": "tutorwell.appointments.cancel",
-    "description": "Cancel a booked appointment and free its slot. At or before its cancellation_cutoff (shown by appointments.list) it is cancelled; after the cutoff it is a late_cancel, which counts as a no-show and can start a suspension (returned here). From the start on it cannot be cancelled (session_started). Refused also: unknown appointment (not_found), already cancelled (invalid_state).",
+    "description": "Cancel a booked appointment (an ID from appointments.list) and free its slot. At or before its cancellation_cutoff (shown by appointments.list) it is cancelled; after the cutoff it is a late_cancel, which counts as a no-show and can start a suspension (returned here). From the start on it cannot be cancelled (session_started). Refused also: unknown appointment (not_found), already cancelled (invalid_state).",
     "read_only": false,
     "scope": "tutorwell.appointments.cancel",
     "resource_target": "current account",
@@ -1364,7 +1372,8 @@
       "properties": {
         "appointment_id": {
           "type": "string",
-          "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]{0,99}$"
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]{0,99}$",
+          "description": "An appointment ID from tutorwell.appointments.list."
         },
         "expected_version": {
           "type": "object",
@@ -1493,7 +1502,8 @@
       "properties": {
         "followup_id": {
           "type": "string",
-          "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]{0,99}$"
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]{0,99}$",
+          "description": "A follow-up ID from tutorwell.reports.list (reports[].followups[].id)."
         },
         "status": {
           "enum": [

@@ -29,6 +29,9 @@ test('workflow 1: services with the rules in force, tutors and open slots by ser
   for (const [name, args] of [['tutors.list', {service_id: 'chem'}], ['tutors.list', {skill_id: 'calc-1'}], ['slots.list', {tutor_id: 't-zoe'}], ['slots.list', {service_id: 'chem'}]]) {
     throwsCode(() => f.call(T + name, args), 'not_found', /Known: .+ tutorwell\.(services|tutors)\.list lists them\./);
   }
+  // A skill ID given as a service, or a service ID as a skill, is named as what it is.
+  throwsCode(() => f.call(T + 'tutors.list', {service_id: 'alg-factoring'}), 'not_found', /alg-factoring is a skill \(Factoring polynomials\); filter by it with skill_id\. Services: math/);
+  throwsCode(() => f.call(T + 'slots.list', {skill_id: 'writing'}), 'not_found', /writing is a service \(Writing centre\); filter by it with service_id/);
 });
 
 test('workflow 1: the student\'s history, reports, accommodations and weekly counts', () => {
@@ -43,7 +46,8 @@ test('workflow 1: the student\'s history, reports, accommodations and weekly cou
   assert.deepEqual([report.id, report.next_focus, report.followups.map(x => [x.id, x.status, x.done_at])],
     ['rep-h1', 'alg-factoring', [['fu-h1', 'done', '2027-01-22T09:00:00-05:00'], ['fu-h2', 'open', null]]]);
   assert.deepEqual(f.call(T + 'reports.list', {appointment_id: 'apt-p1'}).reports, []);
-  throwsCode(() => f.call(T + 'reports.list', {appointment_id: 'apt-9'}), 'not_found', /tutorwell\.appointments\.list lists them/);
+  throwsCode(() => f.call(T + 'reports.list', {appointment_id: 'apt-9'}), 'not_found',
+    /Appointments with a report: apt-h1 \(Wed 2027-01-20T16:00:00-05:00, Ana Ruiz\)\. tutorwell\.appointments\.list lists them all/);
   const p = f.call(T + 'profile.get');
   assert.deepEqual([p.display_name, p.accommodations], ['Jun Park', [{id: 'acc-1', title: 'Extended time (1.5x) on timed work', consent_to_share: false}]]);
   book(f, 's2', MATH);
@@ -100,6 +104,9 @@ test('workflow 3: a cancellation in time frees the slot and the week; repeats, s
   assert.deepEqual(f.call(T + 'profile.get').no_shows.in_window, 1, 'a cancellation in time is not a no-show');
   refused(f, () => f.call(T + 'appointments.cancel', {appointment_id: 'apt-1'}), 'invalid_state');
   refused(f, () => f.call(T + 'appointments.cancel', {appointment_id: 'apt-7'}), 'not_found');
+  // The error lists the appointments that can be cancelled, with their start and tutor.
+  throwsCode(() => f.call(T + 'appointments.cancel', {appointment_id: 'tomorrow'}), 'not_found',
+    /Booked appointments: apt-2 \(Wed 2027-03-10T14:00:00-05:00, Ben Osei\)\. tutorwell\.appointments\.list lists them all/);
   f.advance(at('03-10', '14:20'));
   throwsCode(() => f.call(T + 'appointments.cancel', {appointment_id: 'apt-2'}), 'session_started', /it is now 2027-03-10T14:20:00-05:00/);
 });
@@ -113,6 +120,8 @@ test('workflow 4: follow-ups are marked done and open again; repeats and unknown
   f.call(T + 'followups.set_status', {followup_id: 'fu-h2', status: 'open'});
   assert.deepEqual([fu().status, fu().done_at], ['open', null]);
   refused(f, () => f.call(T + 'followups.set_status', {followup_id: 'fu-9', status: 'done'}), 'not_found');
+  throwsCode(() => f.call(T + 'followups.set_status', {followup_id: 'reading', status: 'done'}), 'not_found',
+    /Open: fu-h2 \(read text-7-1\)\. Done: fu-h1\. tutorwell\.reports\.list lists them with their reports\./);
   const log = f.data.evaluator.activity_log;
   assert.deepEqual(log.map(e => [e.object_id, e.appointment_id, e.details.to]), [['fu-h2', 'apt-h1', 'done'], ['fu-h2', 'apt-h1', 'open']]);
 });
